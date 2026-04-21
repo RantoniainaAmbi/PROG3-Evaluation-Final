@@ -1,0 +1,352 @@
+openapi: 3.0.3
+info:
+  title: API Federation of Agricultural Collectives
+  version: 1.0.0
+  description: API for management and digitalization of agricultural collective federation processes in Madagascar.
+
+servers:
+  - url: https://localhost:8080
+
+paths:
+  /collectives:
+    post:
+      summary: Create a new collective
+      operationId: createCollective
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewCollective'
+      responses:
+        '201':
+          description: Collective created successfully
+        '400':
+          description: Requirements not met
+
+  /collectives/{collectiveId}/members:
+    post:
+      summary: Admit a new member to a collective
+      operationId: addMember
+      parameters:
+        - $ref: '#/components/parameters/collectiveIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewMember'
+      responses:
+        '201':
+          description: Member admitted successfully
+        '400':
+          description: Validation error (unpaid fees, invalid sponsor)
+
+  /collectives/{collectiveId}/contributions:
+    post:
+      summary: Record a contribution payment
+      operationId: addContribution
+      parameters:
+        - $ref: '#/components/parameters/collectiveIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Contribution'
+      responses:
+        '201':
+          description: Contribution recorded
+
+  /collectives/{collectiveId}/accounts:
+    get:
+      summary: Consult the accounts status (Cash, Banks, Mobile Money)
+      operationId: getAccounts
+      parameters:
+        - $ref: '#/components/parameters/collectiveIdParam'
+      responses:
+        '200':
+          description: List of accounts and their balances
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+    
+    post:
+      summary: Add a new account to the collective
+      operationId: addAccount
+      parameters:
+        - $ref: '#/components/parameters/collectiveIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Account'
+      responses:
+        '201':
+          description: Account created (Note only one CASH account permitted)
+
+  /collectives/{collectiveId}/activities:
+    post:
+      summary: Plan a new activity
+      operationId: createActivity
+      parameters:
+        - $ref: '#/components/parameters/collectiveIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Activity'
+      responses:
+        '201':
+          description: Activity planned
+
+  /activities/{activityId}/attendances:
+    post:
+      summary: Record activity attendance sheet
+      operationId: recordAttendances
+      parameters:
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/AttendanceSheet'
+      responses:
+        '200':
+          description: Attendances recorded
+
+  /collectives/{collectiveId}/statistics/attendance:
+    get:
+      summary: Monthly global report of the collective
+      operationId: getGlobalStatistics
+      parameters:
+        - $ref: '#/components/parameters/collectiveIdParam'
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: '2026-04'
+      responses:
+        '200':
+          description: Global statistics generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GlobalStatistics'
+
+  /collectives/{collectiveId}/members/{memberId}/statistics:
+    get:
+      summary: Detailed statistics of an active member
+      operationId: getMemberStatistics
+      parameters:
+        - $ref: '#/components/parameters/collectiveIdParam'
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Detailed member statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberStatistics'
+
+components:
+  parameters:
+    collectiveIdParam:
+      name: collectiveId
+      in: path
+      required: true
+      schema:
+        type: string
+        description: Unique collective identifier
+
+  schemas:
+    NewCollective:
+      type: object
+      required: [name, city, specialty, federationAuthorization, initialMembers]
+      properties:
+        name:
+          type: string
+        city:
+          type: string
+        specialty:
+          type: string
+        federationAuthorization:
+          type: boolean
+        initialMembers:
+          type: array
+          minItems: 10
+          items:
+            type: object
+            properties:
+              memberId:
+                type: string
+              position:
+                $ref: '#/components/schemas/Position'
+
+    NewMember:
+      type: object
+      required: [name, firstName, dateOfBirth, gender, address, profession, phone, email, sponsorId, adhesionFees]
+      properties:
+        name:
+          type: string
+        firstName:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        gender:
+          type: string
+          enum: [FEMALE, MALE]
+        address:
+          type: string
+        profession:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+        sponsorId:
+          type: string
+        adhesionFees:
+          type: object
+          properties:
+            paid:
+              type: boolean
+            amount:
+              type: number
+              example: 50000
+            paymentMethod:
+              $ref: '#/components/schemas/PaymentMethod'
+
+    Position:
+      type: string
+      enum: [PRESIDENT, VICE_PRESIDENT, TREASURER, SECRETARY, CONFIRMED_MEMBER, JUNIOR_MEMBER]
+
+    PaymentMethod:
+      type: string
+      enum: [CASH, BANK_TRANSFER, MOBILE_MONEY]
+
+    Contribution:
+      type: object
+      required: [memberId, amount, collectionDate, paymentMethod, type]
+      properties:
+        memberId:
+          type: string
+        amount:
+          type: number
+        collectionDate:
+          type: string
+          format: date-time
+        paymentMethod:
+          $ref: '#/components/schemas/PaymentMethod'
+        type:
+          type: string
+          enum: [PERIODIC, EXCEPTIONAL]
+
+    Account:
+      type: object
+      required: [accountType, balance]
+      properties:
+        accountType:
+          type: string
+          enum: [CASH, BANK, MOBILE_MONEY]
+        balance:
+          type: number
+        currency:
+          type: string
+          default: MGA
+        holder:
+          type: string
+        bank:
+          type: string
+          enum: [BRED, MCB, BMOI, BOA, BGFI, AFG, ACCES_BANQUE, BAOBAB, SIPEM]
+        rib:
+          type: string
+          pattern: '^\d{23}$'
+        mobileService:
+          type: string
+          enum: [Orange Money, Mvola, Airtel Money]
+        mobilePhone:
+          type: string
+
+    Activity:
+      type: object
+      required: [type, date, mandatoryFor]
+      properties:
+        type:
+          type: string
+          enum: [MONTHLY_GENERAL_ASSEMBLY, JUNIOR_TRAINING, EXCEPTIONAL]
+        date:
+          type: string
+          format: date-time
+        mandatoryFor:
+          type: string
+          enum: [ALL, JUNIORS, SOME, NONE]
+        topic:
+          type: string
+
+    AttendanceSheet:
+      type: object
+      required: [memberId, status]
+      properties:
+        memberId:
+          type: string
+        status:
+          type: string
+          enum: [PRESENT, EXCUSED, ABSENT]
+        excuseReason:
+          type: string
+        externalVisitor:
+          type: boolean
+          default: false
+
+    GlobalStatistics:
+      type: object
+      properties:
+        registeredMembersCount:
+          type: integer
+        globalAttendanceRate:
+          type: number
+          format: float
+
+    MemberStatistics:
+      type: object
+      properties:
+        attendanceRate:
+          type: number
+          format: float
+        collectedAmount:
+          type: number
+        potentialUnpaidAmount:
+          type: number
