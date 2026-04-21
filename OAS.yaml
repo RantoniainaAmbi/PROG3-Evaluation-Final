@@ -185,9 +185,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/MemberStatistics'
 
-  # ─────────────────────────────────────────────────────────
-  # H - Federation statistics
-  # ─────────────────────────────────────────────────────────
   /federation/statistics:
     get:
       summary: Monthly and annual federation-level report across all collectives
@@ -262,9 +259,6 @@ components:
               position:
                 $ref: '#/components/schemas/Position'
 
-    # ─────────────────────────────────────────────────────────
-    # B-2 Updated NewMember schema
-    # ─────────────────────────────────────────────────────────
     NewMember:
       type: object
       required:
@@ -300,7 +294,6 @@ components:
           type: string
           format: email
 
-        # B-2: replaced single sponsorId with a list of sponsors with relationship
         sponsors:
           type: array
           minItems: 2
@@ -326,7 +319,6 @@ components:
               $ref: '#/components/schemas/PaymentMethod'
               description: Only BANK_TRANSFER or MOBILE_MONEY allowed for adhesion fees
 
-        # B-2: new field — mandatory annual contributions must be paid upfront
         annualContributions:
           type: object
           required: [paid, amount, paymentMethod]
@@ -343,9 +335,6 @@ components:
             paymentMethod:
               $ref: '#/components/schemas/PaymentMethod'
 
-    # ─────────────────────────────────────────────────────────
-    # B-2: New Sponsor schema
-    # ─────────────────────────────────────────────────────────
     Sponsor:
       type: object
       required: [memberId, relationship]
@@ -470,9 +459,6 @@ components:
           type: number
           description: Potential unpaid contribution amount for the member over the given period
 
-    # ─────────────────────────────────────────────────────────
-    # H: Federation statistics schemas
-    # ─────────────────────────────────────────────────────────
     FederationStatistics:
       type: object
       description: Federation-wide report aggregating data from all collectives over a given period
