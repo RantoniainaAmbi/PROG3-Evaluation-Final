@@ -20,7 +20,11 @@ CREATE TABLE member (
                         profession  VARCHAR(100),
                         phone_number BIGINT,
                         email       VARCHAR(150),
-                        occupation  member_occupation
+                        occupation  member_occupation,
+                        registration_date DATE default CURRENT_DATE,
+                        registration_fee_paid BOOLEAN default false,
+                        membership_dues_paid BOOLEAN default false,
+                        collectivity_id UUID REFERENCES collectivity(id)
 );
 
 CREATE TABLE collectivity (
