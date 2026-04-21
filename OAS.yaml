@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: API Federation of Agricultural Collectives
-  version: 1.0.0
+  version: 2.0.0
   description: API for management and digitalization of agricultural collective federation processes in Madagascar.
 
 servers:
@@ -22,7 +22,7 @@ paths:
         '201':
           description: Collective created successfully
         '400':
-          description: Requirements not met
+          description: Requirements not met (less than 10 members, missing specific roles, no federation authorization, or less than 5 members with 6+ months seniority)
 
   /collectives/{collectiveId}/members:
     post:
@@ -40,7 +40,12 @@ paths:
         '201':
           description: Member admitted successfully
         '400':
-          description: Validation error (unpaid fees, invalid sponsor)
+          description: >
+            Validation error. Possible causes:
+            - Fewer than 2 confirmed sponsors
+            - Number of sponsors from target collective is less than sponsors from other collectives
+            - Unpaid adhesion fees or annual contributions
+            - Invalid or ineligible sponsor (not confirmed member or seniority < 90 days)
 
   /collectives/{collectiveId}/contributions:
     post:
@@ -73,7 +78,6 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Account'
-    
     post:
       summary: Add a new account to the collective
       operationId: addAccount
@@ -88,6 +92,8 @@ paths:
       responses:
         '201':
           description: Account created (Note only one CASH account permitted)
+        '400':
+          description: A CASH account already exists for this collective
 
   /collectives/{collectiveId}/activities:
     post:
@@ -179,6 +185,40 @@ paths:
               schema:
                 $ref: '#/components/schemas/MemberStatistics'
 
+  # ─────────────────────────────────────────────────────────
+  # H - Federation statistics
+  # ─────────────────────────────────────────────────────────
+  /federation/statistics:
+    get:
+      summary: Monthly and annual federation-level report across all collectives
+      operationId: getFederationStatistics
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          description: Start date of the reporting period
+          schema:
+            type: string
+            format: date
+            example: '2026-01-01'
+        - name: endDate
+          in: query
+          required: true
+          description: End date of the reporting period
+          schema:
+            type: string
+            format: date
+            example: '2026-04-30'
+      responses:
+        '200':
+          description: Federation-level statistics report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationStatistics'
+        '400':
+          description: Invalid date range
+
 components:
   parameters:
     collectiveIdParam:
@@ -196,26 +236,49 @@ components:
       properties:
         name:
           type: string
+          description: Unique name of the collective
         city:
           type: string
+          description: City where the collective operates
         specialty:
           type: string
+          description: Agricultural specialty of the collective
         federationAuthorization:
           type: boolean
+          description: Formal authorization from the federation (must be true)
         initialMembers:
           type: array
           minItems: 10
+          description: >
+            At least 10 members required, of which at least 5 must have 6+ months
+            of seniority within the federation. Specific roles (president,
+            vice-president, treasurer, secretary) must be filled.
           items:
             type: object
+            required: [memberId, position]
             properties:
               memberId:
                 type: string
               position:
                 $ref: '#/components/schemas/Position'
 
+    # ─────────────────────────────────────────────────────────
+    # B-2 Updated NewMember schema
+    # ─────────────────────────────────────────────────────────
     NewMember:
       type: object
-      required: [name, firstName, dateOfBirth, gender, address, profession, phone, email, sponsorId, adhesionFees]
+      required:
+        - name
+        - firstName
+        - dateOfBirth
+        - gender
+        - address
+        - profession
+        - phone
+        - email
+        - sponsors
+        - adhesionFees
+        - annualContributions
       properties:
         name:
           type: string
@@ -236,18 +299,64 @@ components:
         email:
           type: string
           format: email
-        sponsorId:
-          type: string
+
+        # B-2: replaced single sponsorId with a list of sponsors with relationship
+        sponsors:
+          type: array
+          minItems: 2
+          description: >
+            At least 2 confirmed members of the federation must sponsor the candidate.
+            The number of sponsors from the target collective must be >= the number of
+            sponsors from other collectives combined.
+            Each sponsor must be a confirmed member with seniority > 90 days.
+          items:
+            $ref: '#/components/schemas/Sponsor'
+
         adhesionFees:
           type: object
+          required: [paid, amount, paymentMethod]
           properties:
             paid:
               type: boolean
             amount:
               type: number
               example: 50000
+              description: Fixed adhesion fee of 50,000 MGA
             paymentMethod:
               $ref: '#/components/schemas/PaymentMethod'
+              description: Only BANK_TRANSFER or MOBILE_MONEY allowed for adhesion fees
+
+        # B-2: new field — mandatory annual contributions must be paid upfront
+        annualContributions:
+          type: object
+          required: [paid, amount, paymentMethod]
+          description: >
+            The candidate must pay the full annual contributions imposed by the
+            target collective in addition to the adhesion fees.
+          properties:
+            paid:
+              type: boolean
+            amount:
+              type: number
+              description: Total annual contribution amount imposed by the collective (e.g. 200,000 MGA)
+              example: 200000
+            paymentMethod:
+              $ref: '#/components/schemas/PaymentMethod'
+
+    # ─────────────────────────────────────────────────────────
+    # B-2: New Sponsor schema
+    # ─────────────────────────────────────────────────────────
+    Sponsor:
+      type: object
+      required: [memberId, relationship]
+      properties:
+        memberId:
+          type: string
+          description: ID of the confirmed member acting as sponsor (seniority > 90 days required)
+        relationship:
+          type: string
+          description: Nature of the relationship between the candidate and this sponsor (e.g. family, friend, colleague)
+          example: "colleague"
 
     Position:
       type: string
@@ -294,6 +403,8 @@ components:
         rib:
           type: string
           pattern: '^\d{23}$'
+          description: >
+            23-digit RIB: 5 (bank code) + 5 (branch code) + 11 (account number) + 2 (RIB key)
         mobileService:
           type: string
           enum: [Orange Money, Mvola, Airtel Money]
@@ -315,6 +426,7 @@ components:
           enum: [ALL, JUNIORS, SOME, NONE]
         topic:
           type: string
+          description: Topic of the activity (especially for EXCEPTIONAL type)
 
     AttendanceSheet:
       type: object
@@ -327,18 +439,22 @@ components:
           enum: [PRESENT, EXCUSED, ABSENT]
         excuseReason:
           type: string
+          description: Required if status is EXCUSED
         externalVisitor:
           type: boolean
           default: false
+          description: True if the member belongs to another collective (attendance not counted in their rate)
 
     GlobalStatistics:
       type: object
       properties:
         registeredMembersCount:
           type: integer
+          description: Total number of registered members in the collective
         globalAttendanceRate:
           type: number
           format: float
+          description: Overall attendance rate for the collective during the reported month
 
     MemberStatistics:
       type: object
@@ -346,7 +462,54 @@ components:
         attendanceRate:
           type: number
           format: float
+          description: Attendance rate of the member over the given period
         collectedAmount:
           type: number
+          description: Total amount collected from the member over the given period
         potentialUnpaidAmount:
           type: number
+          description: Potential unpaid contribution amount for the member over the given period
+
+    # ─────────────────────────────────────────────────────────
+    # H: Federation statistics schemas
+    # ─────────────────────────────────────────────────────────
+    FederationStatistics:
+      type: object
+      description: Federation-wide report aggregating data from all collectives over a given period
+      properties:
+        period:
+          type: object
+          properties:
+            startDate:
+              type: string
+              format: date
+            endDate:
+              type: string
+              format: date
+        collectivesReport:
+          type: array
+          description: Per-collective breakdown of the key indicators
+          items:
+            $ref: '#/components/schemas/CollectiveReport'
+
+    CollectiveReport:
+      type: object
+      description: Key statistics for a single collective within the federation report
+      properties:
+        collectiveId:
+          type: string
+        collectiveName:
+          type: string
+        attendanceRate:
+          type: number
+          format: float
+          description: Global attendance rate of the collective over the given period
+        upToDateContributionPercentage:
+          type: number
+          format: float
+          description: >
+            Percentage of active members who are up to date with their contributions
+            over the given period
+        newMembersCount:
+          type: integer
+          description: Number of new members who joined this collective during the given period
