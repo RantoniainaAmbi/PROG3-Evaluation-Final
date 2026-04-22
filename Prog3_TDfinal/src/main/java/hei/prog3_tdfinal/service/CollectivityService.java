@@ -16,25 +16,27 @@ import java.util.UUID;
 public class CollectivityService {
     private final CollectivityRepository repository;
 
-
     public void createCollectivity(Map<String, Object> data) throws SQLException {
+        if (data.get("city") == null || ((String) data.get("city")).isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "City is required");
+        }
         repository.save(data);
     }
 
-
     public Collectivity assignIdentity(UUID id, String newName, String newNumber) throws SQLException {
         Collectivity current = repository.findById(id);
-
         if (current == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Collectivity not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Collectivity with ID " + id + " not found");
         }
 
+        if (newName == null || newName.trim().isEmpty() || newNumber == null || newNumber.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Name and number cannot be empty");
+        }
 
         if (current.getName() != null || current.getNumber() != null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Identity assignment is final. Name and number cannot be changed once set.");
         }
-
 
         if (repository.existsByName(newName) || repository.existsByNumber(newNumber)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,

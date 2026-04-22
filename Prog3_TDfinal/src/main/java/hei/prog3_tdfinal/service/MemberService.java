@@ -18,11 +18,13 @@ public class MemberService {
 
 
     public void addMemberToCollectivity(UUID collectivityId, Map<String, Object> data) throws SQLException {
+        Object regFee = data.get("registrationFeePaid");
+        Object duesPaid = data.get("membershipDuesPaid");
 
-        boolean registrationFeePaid = (boolean) data.getOrDefault("registrationFeePaid", false);
-        boolean membershipDuesPaid = (boolean) data.getOrDefault("membershipDuesPaid", false);
+        boolean isRegPaid = regFee instanceof Boolean && (Boolean) regFee;
+        boolean isDuesPaid = duesPaid instanceof Boolean && (Boolean) duesPaid;
 
-        if (!registrationFeePaid || !membershipDuesPaid) {
+        if (!isRegPaid || !isDuesPaid) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Cannot create member: Registration fee and membership dues must be paid.");
         }
@@ -34,7 +36,7 @@ public class MemberService {
     public Member getMemberById(UUID id) throws SQLException {
         Member member = repository.findById(id);
         if (member == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Member with ID " + id + " not found");
         }
         return member;
     }
