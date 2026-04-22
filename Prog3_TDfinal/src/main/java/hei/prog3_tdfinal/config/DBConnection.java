@@ -2,15 +2,17 @@ package hei.prog3_tdfinal.config;
 
 
 import io.github.cdimascio.dotenv.Dotenv;
+import lombok.Getter;
 import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+@Getter
 @Component
 public class DBConnection {
-    private Connection connection;
+    private final Connection connection;
 
     public DBConnection() {
         Dotenv dotenv = Dotenv.load();
@@ -25,10 +27,6 @@ public class DBConnection {
             System.err.println("Connection error : " + e.getMessage());
             throw new RuntimeException(e);
         }
-    }
-
-    public Connection getConnection() {
-        return this.connection;
     }
 
     public void closeConnection() {
