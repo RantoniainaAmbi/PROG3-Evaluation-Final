@@ -2,10 +2,13 @@ package hei.prog3_tdfinal.config;
 
 
 import io.github.cdimascio.dotenv.Dotenv;
+import org.springframework.stereotype.Component;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+@Component
 public class DBConnection {
     private Connection connection;
 
