@@ -41,7 +41,7 @@ public class CollectivityRepository {
     }
 
     public boolean existsByName(String name) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM collectivity WHERE name = ?";
+        String sql = "SELECT COUNT(id) FROM collectivity WHERE name = ?";
         try (Connection conn = dbConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, name);
@@ -52,7 +52,7 @@ public class CollectivityRepository {
     }
 
     public boolean existsByNumber(String number) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM collectivity WHERE number = ?";
+        String sql = "SELECT COUNT(id) FROM collectivity WHERE number = ?";
         try (Connection conn = dbConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, number);
