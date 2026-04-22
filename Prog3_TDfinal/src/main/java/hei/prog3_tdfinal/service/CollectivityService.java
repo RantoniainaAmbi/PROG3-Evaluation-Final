@@ -55,7 +55,6 @@ public class CollectivityService {
 
         repository.save(data);
         
-        // Return a minimal collectivity response
         return Collectivity.builder()
                 .location((String) data.get("location"))
                 .build();

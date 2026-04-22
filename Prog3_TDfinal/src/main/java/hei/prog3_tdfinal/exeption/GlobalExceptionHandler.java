@@ -1,4 +1,4 @@
-package hei.prog3_tdfinal.exception;
+package hei.prog3_tdfinal.exeption;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
