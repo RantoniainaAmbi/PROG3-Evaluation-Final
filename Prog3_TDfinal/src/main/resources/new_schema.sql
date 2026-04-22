@@ -1,2 +1,17 @@
 ALTER TABLE collectivity ADD COLUMN IF NOT EXISTS name VARCHAR(150) UNIQUE;
 ALTER TABLE collectivity ADD COLUMN IF NOT EXISTS number VARCHAR(50) UNIQUE;
+
+ALTER TABLE collectivity ADD COLUMN IF NOT EXISTS specialty VARCHAR(100);
+ALTER TABLE collectivity ADD COLUMN IF NOT EXISTS creation_date DATE DEFAULT CURRENT_DATE;
+ALTER TABLE collectivity ADD COLUMN IF NOT EXISTS location VARCHAR(255);
+
+ALTER TABLE member ADD COLUMN IF NOT EXISTS registration_fee_paid BOOLEAN DEFAULT false;
+ALTER TABLE member ADD COLUMN IF NOT EXISTS membership_dues_paid BOOLEAN DEFAULT false;
+
+CREATE TABLE IF NOT EXISTS sponsorship (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    candidate_id  UUID NOT NULL REFERENCES member(id),
+    sponsor_id    UUID NOT NULL REFERENCES member(id),
+    relation      VARCHAR(100),
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

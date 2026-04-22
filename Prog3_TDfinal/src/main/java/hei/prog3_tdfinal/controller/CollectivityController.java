@@ -22,10 +22,8 @@ public class CollectivityController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void createCollectivities(@RequestBody List<Map<String, Object>> collectives) throws SQLException {
-        for (Map<String, Object> data : collectives) {
-            service.createCollectivity(data);
-        }
+    public Collectivity createCollectivities(@RequestBody Map<String, Object> data) throws SQLException {
+        return service.createCollectivity(data);
     }
 
 

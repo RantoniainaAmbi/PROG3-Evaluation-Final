@@ -15,7 +15,7 @@ public class MemberRepository {
     private final DBConnection dbConnection;
 
     public void save(UUID collectivityId, Map<String, Object> data) throws SQLException {
-        String sql = "INSERT INTO member (first_name, last_name, birth_date, gender, address, job, phone, email, joining_date, collectivity_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO member (first_name, last_name, birth_date, gender, address, profession, phone_number, email, registration_date, collectivity_id, registration_fee_paid, membership_dues_paid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = dbConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -25,12 +25,14 @@ public class MemberRepository {
 
             ps.setObject(4, data.get("gender"), java.sql.Types.OTHER);
             ps.setString(5, (String) data.get("address"));
-            ps.setObject(6, data.get("job"), java.sql.Types.OTHER);
+            ps.setString(6, (String) data.get("profession"));
 
-            ps.setString(7, (String) data.get("phone"));
+            ps.setString(7, (String) data.get("phoneNumber"));
             ps.setString(8, (String) data.get("email"));
             ps.setDate(9, new java.sql.Date(System.currentTimeMillis()));
             ps.setObject(10, collectivityId);
+            ps.setBoolean(11, data.get("registrationFeePaid") != null && (Boolean) data.get("registrationFeePaid"));
+            ps.setBoolean(12, data.get("membershipDuesPaid") != null && (Boolean) data.get("membershipDuesPaid"));
 
             ps.executeUpdate();
         }

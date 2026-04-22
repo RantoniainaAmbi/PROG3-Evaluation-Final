@@ -18,12 +18,13 @@ public class CollectivityRepository {
     private final DBConnection dbConnection;
 
     public void save(Map<String, Object> data) throws SQLException {
-        String sql = "INSERT INTO collectivity (city, specialty, creation_date) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO collectivity (location, specialty, creation_date, federation_approval) VALUES (?, ?, ?, ?)";
         try (Connection conn = dbConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, (String) data.get("city"));
+            ps.setString(1, (String) data.get("location"));
             ps.setString(2, (String) data.get("specialty"));
             ps.setDate(3, new java.sql.Date(System.currentTimeMillis()));
+            ps.setBoolean(4, data.get("federationApproval") != null && (Boolean) data.get("federationApproval"));
             ps.executeUpdate();
         }
     }

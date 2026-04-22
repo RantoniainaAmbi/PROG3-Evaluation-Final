@@ -1,5 +1,6 @@
 package hei.prog3_tdfinal.controller;
 
+import hei.prog3_tdfinal.entity.Member;
 import hei.prog3_tdfinal.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,10 +20,10 @@ public class MemberController {
 
     @PostMapping("/{collectivityId}/members")
     @ResponseStatus(HttpStatus.CREATED)
-    public void addMemberToCollectivity(
+    public Member addMemberToCollectivity(
             @PathVariable UUID collectivityId,
             @RequestBody Map<String, Object> newMember) throws SQLException {
 
-        service.addMemberToCollectivity(collectivityId, newMember);
+        return service.addMemberToCollectivity(collectivityId, newMember);
     }
 }

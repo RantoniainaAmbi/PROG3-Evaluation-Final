@@ -8,6 +8,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -16,11 +19,46 @@ import java.util.UUID;
 public class CollectivityService {
     private final CollectivityRepository repository;
 
-    public void createCollectivity(Map<String, Object> data) throws SQLException {
-        if (data.get("city") == null || ((String) data.get("city")).isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "City is required");
+
+    public Collectivity createCollectivity(Map<String, Object> data) throws SQLException {
+        if (data.get("location") == null || ((String) data.get("location")).isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Location is required");
         }
+        if (data.get("specialty") == null || ((String) data.get("specialty")).isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Specialty is required");
+        }
+
+        Object federationApprovalObj = data.get("federationApproval");
+        boolean federationApproval = federationApprovalObj instanceof Boolean && (Boolean) federationApprovalObj;
+        if (!federationApproval) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Federation approval is mandatory to create a collectivity");
+        }
+
+        @SuppressWarnings("unchecked")
+        List<UUID> memberIds = (List<UUID>) data.get("members");
+        if (memberIds == null || memberIds.size() < 10) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "At least 10 members are required to create a collectivity");
+        }
+
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> structure = (Map<String, Object>) data.get("structure");
+        if (structure == null 
+                || !structure.containsKey("president") 
+                || !structure.containsKey("vicePresident")
+                || !structure.containsKey("treasurer")
+                || !structure.containsKey("secretary")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "All specific positions (president, vice-president, treasurer, secretary) must be assigned");
+        }
+
         repository.save(data);
+        
+        // Return a minimal collectivity response
+        return Collectivity.builder()
+                .location((String) data.get("location"))
+                .build();
     }
 
     public Collectivity assignIdentity(UUID id, String newName, String newNumber) throws SQLException {
