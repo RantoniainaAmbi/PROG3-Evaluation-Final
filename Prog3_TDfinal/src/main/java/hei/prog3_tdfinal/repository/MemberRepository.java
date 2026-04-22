@@ -50,7 +50,7 @@ public class MemberRepository {
     }
 
     public Member findById(UUID id) throws SQLException {
-        String sql = "SELECT * FROM member WHERE id = ?";
+        String sql = "SELECT id, first_name, last_name, birth_date, gender, address, profession, phone_number, email, registration_date FROM member WHERE id = ?";
         try (Connection conn = dbConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setObject(1, id);
