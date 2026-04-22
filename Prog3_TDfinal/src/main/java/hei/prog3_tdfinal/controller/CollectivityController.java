@@ -1,6 +1,9 @@
 package hei.prog3_tdfinal.controller;
 
 import hei.prog3_tdfinal.config.DBConnection;
+import hei.prog3_tdfinal.dto.UpdateCollectivityIdentityRequest;
+import hei.prog3_tdfinal.entity.Collectivity;
+import hei.prog3_tdfinal.service.CollectivityService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,10 +14,11 @@ import java.util.*;
 @RestController
 @RequestMapping("/collectives")
 public class CollectivityController {
-
+    private final CollectivityService service;
     private final DBConnection dbConnection;
 
-    public CollectivityController(DBConnection dbConnection) {
+    public CollectivityController(CollectivityService service, DBConnection dbConnection) {
+        this.service = service;
         this.dbConnection = dbConnection;
     }
 
@@ -38,6 +42,13 @@ public class CollectivityController {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
         return ResponseEntity.badRequest().body("Requirements not met");
+    }
+
+    @PatchMapping("/{id}")
+    public Collectivity updateIdentity(
+            @PathVariable UUID id,
+            @RequestBody UpdateCollectivityIdentityRequest request) {
+        return service.assignIdentity(id, request.getName(), request.getNumber());
     }
 
     
