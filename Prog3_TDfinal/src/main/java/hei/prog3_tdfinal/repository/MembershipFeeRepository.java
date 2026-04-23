@@ -1,6 +1,7 @@
 package hei.prog3_tdfinal.repository;
 
 import hei.prog3_tdfinal.config.DBConnection;
+import hei.prog3_tdfinal.dto.MemberStatisticsDto;
 import hei.prog3_tdfinal.entity.ActivityStatus;
 import hei.prog3_tdfinal.entity.Frequency;
 import hei.prog3_tdfinal.entity.MembershipFee;
@@ -8,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.sql.*;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -67,5 +69,36 @@ public class MembershipFeeRepository {
             }
         }
         return fees;
+    }
+
+    public List<MemberStatisticsDto> getMemberStatistics(UUID collectivityId, LocalDate startDate, LocalDate endDate) throws SQLException {
+        String sql = "SELECT m.id, m.first_name, m.last_name, COALESCE(SUM(ct.amount), 0) as total_collected FROM member m " +
+                     "LEFT JOIN collectivity_transaction ct ON m.id = ct.member_debited_id AND ct.creation_date >= ? AND ct.creation_date <= ? " +
+                     "WHERE m.collectivity_id = ? " +
+                     "GROUP BY m.id, m.first_name, m.last_name";
+
+        List<MemberStatisticsDto> statistics = new ArrayList<>();
+
+        try (Connection conn = dbConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDate(1, Date.valueOf(startDate));
+            ps.setDate(2, Date.valueOf(endDate));
+            ps.setObject(3, collectivityId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    MemberStatisticsDto stat = MemberStatisticsDto.builder()
+                            .memberId((UUID) rs.getObject("id"))
+                            .firstName(rs.getString("first_name"))
+                            .lastName(rs.getString("last_name"))
+                            .totalCollected(rs.getDouble("total_collected"))
+                            .attendanceRate(0.0)
+                            .outstandingAmount(0.0)
+                            .build();
+                    statistics.add(stat);
+                }
+            }
+        }
+        return statistics;
     }
 }

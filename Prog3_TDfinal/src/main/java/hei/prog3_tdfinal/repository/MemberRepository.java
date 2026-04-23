@@ -2,10 +2,12 @@ package hei.prog3_tdfinal.repository;
 
 import hei.prog3_tdfinal.config.DBConnection;
 import hei.prog3_tdfinal.entity.Member;
+import hei.prog3_tdfinal.entity.MemberOccupation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.sql.*;
+import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 
@@ -65,5 +67,88 @@ public class MemberRepository {
             }
         }
         return null;
+    }
+
+    public Member findByIdWithOccupation(UUID id) throws SQLException {
+        String sql = "SELECT id, first_name, last_name, birth_date, gender, address, profession, phone_number, email, registration_date, occupation FROM member WHERE id = ?";
+        try (Connection conn = dbConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Member.builder()
+                            .id((UUID) rs.getObject("id"))
+                            .firstName(rs.getString("first_name"))
+                            .lastName(rs.getString("last_name"))
+                            .registrationDate(rs.getDate("registration_date").toLocalDate())
+                            .occupation(MemberOccupation.valueOf(rs.getString("occupation")))
+                            .build();
+                }
+            }
+        }
+        return null;
+    }
+
+    public boolean isConfirmedMember(UUID memberId) throws SQLException {
+        String sql = "SELECT occupation FROM member WHERE id = ?";
+        try (Connection conn = dbConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, memberId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String occupation = rs.getString("occupation");
+                    return occupation != null && (occupation.equals("SENIOR") || occupation.equals("CONFIRMED"));
+                }
+            }
+        }
+        return false;
+    }
+
+    public Long getDaysOfMembership(UUID memberId) throws SQLException {
+        String sql = "SELECT registration_date FROM member WHERE id = ?";
+        try (Connection conn = dbConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, memberId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    java.sql.Date registrationDate = rs.getDate("registration_date");
+                    if (registrationDate != null) {
+                        LocalDate regDate = registrationDate.toLocalDate();
+                        LocalDate today = java.time.LocalDate.now();
+                        return java.time.temporal.ChronoUnit.DAYS.between(regDate, today);
+                    }
+                }
+            }
+        }
+        return 0L;
+    }
+
+    public Long countMembersByCollectivityWithSeniority(UUID collectivityId, long minDays) throws SQLException {
+        String sql = "SELECT COUNT(id) as count FROM member WHERE collectivity_id = ? AND registration_date <= NOW() - INTERVAL ? DAY";
+        try (Connection conn = dbConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, collectivityId);
+            ps.setLong(2, minDays);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getLong("count");
+                }
+            }
+        }
+        return 0L;
+    }
+
+    public Long countActiveMembers(UUID collectivityId) throws SQLException {
+        String sql = "SELECT COUNT(id) as count FROM member WHERE collectivity_id = ?";
+        try (Connection conn = dbConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, collectivityId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getLong("count");
+                }
+            }
+        }
+        return 0L;
     }
 }

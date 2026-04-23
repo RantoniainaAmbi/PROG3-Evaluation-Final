@@ -16,13 +16,37 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class MemberService {
     private final MemberRepository repository;
+    private final AnnualMembershipFeesCalculator feesCalculator;
 
+    private void validateSponsorsAreConfirmed(List<Map<String, Object>> sponsors) throws SQLException {
+        for (Map<String, Object> sponsor : sponsors) {
+            UUID sponsorId = UUID.fromString((String) sponsor.get("id"));
+            if (!repository.isConfirmedMember(sponsorId)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "All sponsors must be confirmed members");
+            }
+        }
+    }
+
+    private void validateSponsorsSeniority(List<Map<String, Object>> sponsors) throws SQLException {
+        for (Map<String, Object> sponsor : sponsors) {
+            UUID sponsorId = UUID.fromString((String) sponsor.get("id"));
+            Long days = repository.getDaysOfMembership(sponsorId);
+            if (days < 90) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "All sponsors must have at least 90 days of membership");
+            }
+        }
+    }
 
     private void validateSponsors(UUID targetCollectivityId, List<Map<String, Object>> sponsors) throws SQLException {
         if (sponsors == null || sponsors.size() < 2) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "At least 2 confirmed sponsors are required for admission");
         }
+
+        validateSponsorsAreConfirmed(sponsors);
+        validateSponsorsSeniority(sponsors);
 
         long targetCollectivitySponsors = sponsors.stream()
                 .filter(s -> targetCollectivityId.equals(UUID.fromString((String) s.get("collectivityId"))))
@@ -35,7 +59,6 @@ public class MemberService {
                     "Sponsors from the target collectivity must be equal to or greater than sponsors from other collectivities");
         }
     }
-
 
     public Member addMemberToCollectivity(UUID collectivityId, Map<String, Object> data) throws SQLException {
         Object regFee = data.get("registrationFeePaid");
@@ -59,6 +82,17 @@ public class MemberService {
 
         validateSponsors(collectivityId, sponsors);
 
+        double annualDues = feesCalculator.calculateTotalAnnualDues(collectivityId);
+        Object paidAmount = data.get("totalPaidAmount");
+        if (paidAmount instanceof Number) {
+            double paid = ((Number) paidAmount).doubleValue();
+            double required = 50000.0 + annualDues;
+            if (paid < required) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Total payment must include registration fee (50.000 MGA) + annual dues (" + annualDues + " MGA)");
+            }
+        }
+
         repository.save(collectivityId, data);
         
         String candidateId = (String) data.get("id");
@@ -77,7 +111,6 @@ public class MemberService {
                 .email((String) data.get("email"))
                 .build();
     }
-
 
     public Member getMemberById(UUID id) throws SQLException {
         Member member = repository.findById(id);

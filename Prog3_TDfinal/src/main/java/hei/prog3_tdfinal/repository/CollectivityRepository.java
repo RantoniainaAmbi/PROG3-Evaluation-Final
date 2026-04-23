@@ -1,6 +1,7 @@
 package hei.prog3_tdfinal.repository;
 
 import hei.prog3_tdfinal.config.DBConnection;
+import hei.prog3_tdfinal.dto.FederationStatisticsDto;
 import hei.prog3_tdfinal.entity.Collectivity;
 import hei.prog3_tdfinal.entity.Gender;
 import hei.prog3_tdfinal.entity.Member;
@@ -9,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.sql.*;
+import java.sql.Date;
+import java.time.LocalDate;
 import java.util.*;
 
 @Repository
@@ -16,16 +19,19 @@ import java.util.*;
 public class CollectivityRepository {
     private final DBConnection dbConnection;
 
-    public void save(Map<String, Object> data) throws SQLException {
-        String sql = "INSERT INTO collectivity (location, specialty, creation_date, federation_approval) VALUES (?, ?, ?, ?)";
+    public UUID save(Map<String, Object> data) throws SQLException {
+        String sql = "INSERT INTO collectivity (id, location, specialty, creation_date, federation_approval) VALUES (?, ?, ?, ?, ?)";
+        UUID collectivityId = UUID.randomUUID();
         try (Connection conn = dbConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, (String) data.get("location"));
-            ps.setString(2, (String) data.get("specialty"));
-            ps.setDate(3, new java.sql.Date(System.currentTimeMillis()));
-            ps.setBoolean(4, data.get("federationApproval") != null && (Boolean) data.get("federationApproval"));
+            ps.setObject(1, collectivityId);
+            ps.setString(2, (String) data.get("location"));
+            ps.setString(3, (String) data.get("specialty"));
+            ps.setDate(4, new java.sql.Date(System.currentTimeMillis()));
+            ps.setBoolean(5, data.get("federationApproval") != null && (Boolean) data.get("federationApproval"));
             ps.executeUpdate();
         }
+        return collectivityId;
     }
 
     public void updateIdentity(UUID id, String name, String number) throws SQLException {
@@ -154,5 +160,62 @@ public class CollectivityRepository {
                 return collectivity;
             }
         }
+    }
+
+    public long countActiveMembersInCollectivity(UUID collectivityId) throws SQLException {
+        String sql = "SELECT COUNT(id) as count FROM member WHERE collectivity_id = ?";
+        try (Connection conn = dbConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, collectivityId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getLong("count");
+                }
+            }
+        }
+        return 0L;
+    }
+
+    public long countMembersWithMinSeniority(UUID collectivityId, int minDays) throws SQLException {
+        String sql = "SELECT COUNT(id) as count FROM member WHERE collectivity_id = ? AND registration_date <= CURRENT_DATE - INTERVAL '? days'";
+        try (Connection conn = dbConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, collectivityId);
+            ps.setInt(2, minDays);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getLong("count");
+                }
+            }
+        }
+        return 0L;
+    }
+
+    public List<FederationStatisticsDto.CollectivityFederationStatDto> getFederationStatistics(LocalDate startDate, LocalDate endDate) throws SQLException {
+        String sql = "SELECT c.name, COUNT(DISTINCT m.id) as new_members FROM collectivity c " +
+                     "LEFT JOIN member m ON c.id = m.collectivity_id AND m.registration_date >= ? AND m.registration_date <= ? " +
+                     "GROUP BY c.id, c.name";
+
+        List<FederationStatisticsDto.CollectivityFederationStatDto> statistics = new ArrayList<>();
+
+        try (Connection conn = dbConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDate(1, Date.valueOf(startDate));
+            ps.setDate(2, Date.valueOf(endDate));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    FederationStatisticsDto.CollectivityFederationStatDto stat = 
+                            FederationStatisticsDto.CollectivityFederationStatDto.builder()
+                            .collectivityName(rs.getString("name"))
+                            .newMembers(rs.getLong("new_members"))
+                            .attendanceRate(0.0)
+                            .paidUpPercentage(0.0)
+                            .build();
+                    statistics.add(stat);
+                }
+            }
+        }
+        return statistics;
     }
 }

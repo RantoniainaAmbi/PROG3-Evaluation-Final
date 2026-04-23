@@ -55,9 +55,17 @@ public class CollectivityService {
                     "All specific positions (president, vice-president, treasurer, secretary) must be assigned");
         }
 
-        repository.save(data);
+        UUID collectivityId = UUID.randomUUID();
+        long seniorMembersCount = repository.countMembersWithMinSeniority(collectivityId, 180);
+        if (seniorMembersCount < 5) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "At least 5 members with 6+ months seniority are required to create a collectivity");
+        }
+
+        UUID savedId = repository.save(data);
 
         return Collectivity.builder()
+                .id(savedId)
                 .location((String) data.get("location"))
                 .build();
     }
