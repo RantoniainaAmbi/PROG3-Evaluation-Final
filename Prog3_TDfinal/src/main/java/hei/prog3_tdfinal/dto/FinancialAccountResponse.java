@@ -5,14 +5,12 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.UUID;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class FinancialAccountResponse {
-    private UUID id;
+    private String id;
     private String accountType; 
     private Double balance;
     private String currency;

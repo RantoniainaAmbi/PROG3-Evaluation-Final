@@ -9,14 +9,13 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class MemberResponse {
-    private UUID id;
+    private String id;
     private String firstName;
     private String lastName;
     private LocalDate birthDate;
@@ -34,7 +33,7 @@ public class MemberResponse {
     @AllArgsConstructor
     @Builder
     public static class SponsorInfo {
-        private UUID id;
+        private String id;
         private String firstName;
         private String lastName;
         private String relation;

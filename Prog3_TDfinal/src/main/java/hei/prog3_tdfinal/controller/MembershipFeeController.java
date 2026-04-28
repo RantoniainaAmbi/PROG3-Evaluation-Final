@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/collectivities/{collectivityId}/membershipFees")
@@ -21,7 +20,7 @@ public class MembershipFeeController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public MembershipFee create(
-            @PathVariable UUID collectivityId,
+            @PathVariable String collectivityId,
             @RequestBody MembershipFee membershipFee) throws SQLException {
         return membershipFeeService.create(collectivityId, membershipFee);
     }
@@ -30,7 +29,7 @@ public class MembershipFeeController {
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
     public List<MembershipFee> findAll(
-            @PathVariable UUID collectivityId) throws SQLException {
+            @PathVariable String collectivityId) throws SQLException {
         return membershipFeeService.findByCollectivityId(collectivityId);
     }
 }

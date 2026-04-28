@@ -8,14 +8,13 @@ import org.springframework.stereotype.Component;
 
 import java.sql.SQLException;
 import java.util.List;
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
 public class AnnualMembershipFeesCalculator {
     private final MembershipFeeRepository membershipFeeRepository;
 
-    public double calculateTotalAnnualDues(UUID collectivityId) throws SQLException {
+    public double calculateTotalAnnualDues(String collectivityId) throws SQLException {
         List<MembershipFee> fees = membershipFeeRepository.findByCollectivityId(collectivityId);
         
         double total = 0.0;
@@ -27,7 +26,7 @@ public class AnnualMembershipFeesCalculator {
         return total;
     }
 
-    public double calculateMandatoryDues(UUID collectivityId) throws SQLException {
+    public double calculateMandatoryDues(String collectivityId) throws SQLException {
         List<MembershipFee> fees = membershipFeeRepository.findByCollectivityId(collectivityId);
         
         double total = 0.0;

@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Data
@@ -17,7 +16,7 @@ public class CollectivityTransaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    private String id;
 
     @Column(nullable = false)
     private LocalDateTime creationDate;
@@ -29,11 +28,11 @@ public class CollectivityTransaction {
     private PaymentMode paymentMode;
 
     @Column(nullable = false)
-    private UUID accountCreditedId;
+    private String accountCreditedId;
 
     @Column(nullable = false)
-    private UUID memberDebitedId;
+    private String memberDebitedId;
 
     @Column(nullable = false)
-    private UUID collectivityId;
+    private String collectivityId;
 }

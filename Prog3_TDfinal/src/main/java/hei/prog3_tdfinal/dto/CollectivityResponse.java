@@ -7,14 +7,13 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class CollectivityResponse {
-    private UUID id;
+    private String id;
     private String name;
     private String number;
     private String location;

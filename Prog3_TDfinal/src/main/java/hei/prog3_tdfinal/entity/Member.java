@@ -2,7 +2,6 @@ package hei.prog3_tdfinal.entity;
 
 import lombok.*;
 import java.time.LocalDate;
-import java.util.UUID;
 import java.util.List;
 
 @Data
@@ -10,7 +9,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class Member {
-    private UUID id;
+    private String id;
     private String firstName;
     private String lastName;
     private LocalDate birthDate;

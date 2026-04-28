@@ -14,7 +14,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +23,7 @@ public class CollectivityStatisticsService {
     private final MembershipFeeRepository membershipFeeRepository;
     private final FinancialAccountRepository financialAccountRepository;
 
-    public CollectivityStatisticsDto getStatistics(UUID collectivityId, LocalDate startDate, LocalDate endDate) throws SQLException {
+    public CollectivityStatisticsDto getStatistics(String collectivityId, LocalDate startDate, LocalDate endDate) throws SQLException {
         if (collectivityRepository.findById(collectivityId) == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Collectivity not found");
         }
@@ -43,11 +42,11 @@ public class CollectivityStatisticsService {
                 .build();
     }
 
-    public List<MemberStatisticsDto> getMemberStatistics(UUID collectivityId, LocalDate startDate, LocalDate endDate) throws SQLException {
+    public List<MemberStatisticsDto> getMemberStatistics(String collectivityId, LocalDate startDate, LocalDate endDate) throws SQLException {
         return membershipFeeRepository.getMemberStatistics(collectivityId, startDate, endDate);
     }
 
-    private double calculateAttendanceRate(UUID collectivityId, LocalDate startDate, LocalDate endDate) throws SQLException {
+    private double calculateAttendanceRate(String collectivityId, LocalDate startDate, LocalDate endDate) throws SQLException {
         return 0.0;
     }
 }

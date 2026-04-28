@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -25,7 +24,7 @@ public class PaymentService {
     }
 
 
-    public List<CollectivityTransaction> getTransactionHistory(UUID collectivityId, LocalDateTime from, LocalDateTime to) throws SQLException {
+    public List<CollectivityTransaction> getTransactionHistory(String collectivityId, LocalDateTime from, LocalDateTime to) throws SQLException {
         return transactionRepository.findByFilter(collectivityId, from, to);
     }
 }

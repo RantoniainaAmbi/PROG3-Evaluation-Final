@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 @Data
 @NoArgsConstructor
@@ -23,8 +22,8 @@ public class CreateMemberRequest {
     private Long phoneNumber;
     private String email;
     private MemberOccupation occupation;
-    private UUID collectivityIdentifier;
-    private List<UUID> referees;
+    private String collectivityIdentifier;
+    private List<String> referees;
     private boolean registrationFeePaid;
     private boolean membershipDuesPaid;
 }

@@ -12,7 +12,6 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -22,7 +21,7 @@ public class TransactionController {
 
     @GetMapping("/collectivities/{id}/transactions")
     public List<CollectivityTransaction> getTransactions(
-            @PathVariable UUID id,
+            @PathVariable String id,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
     ) throws SQLException {
@@ -36,7 +35,7 @@ public class TransactionController {
     @PostMapping("/members/{id}/payments")
     @ResponseStatus(HttpStatus.CREATED)
     public void createPayments(
-            @PathVariable UUID id,
+            @PathVariable String id,
             @RequestBody List<CollectivityTransaction> transactions
     ) throws SQLException {
         for (CollectivityTransaction transaction : transactions) {

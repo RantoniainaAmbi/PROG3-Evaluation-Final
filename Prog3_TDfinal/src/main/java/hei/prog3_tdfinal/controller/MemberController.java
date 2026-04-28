@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/collectivities")
@@ -21,7 +20,7 @@ public class MemberController {
     @PostMapping("/{collectivityId}/members")
     @ResponseStatus(HttpStatus.CREATED)
     public Member addMemberToCollectivity(
-            @PathVariable UUID collectivityId,
+            @PathVariable String collectivityId,
             @RequestBody Map<String, Object> newMember) throws SQLException {
 
         return service.addMemberToCollectivity(collectivityId, newMember);

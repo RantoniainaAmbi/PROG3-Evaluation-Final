@@ -10,7 +10,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -20,7 +19,7 @@ public class MemberService {
 
     private void validateSponsorsAreConfirmed(List<Map<String, Object>> sponsors) throws SQLException {
         for (Map<String, Object> sponsor : sponsors) {
-            UUID sponsorId = UUID.fromString((String) sponsor.get("id"));
+            String sponsorId = (String) sponsor.get("id");
             if (!repository.isConfirmedMember(sponsorId)) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "All sponsors must be confirmed members");
@@ -30,7 +29,7 @@ public class MemberService {
 
     private void validateSponsorsSeniority(List<Map<String, Object>> sponsors) throws SQLException {
         for (Map<String, Object> sponsor : sponsors) {
-            UUID sponsorId = UUID.fromString((String) sponsor.get("id"));
+            String sponsorId = (String) sponsor.get("id");
             Long days = repository.getDaysOfMembership(sponsorId);
             if (days < 90) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -39,7 +38,7 @@ public class MemberService {
         }
     }
 
-    private void validateSponsors(UUID targetCollectivityId, List<Map<String, Object>> sponsors) throws SQLException {
+    private void validateSponsors(String targetCollectivityId, List<Map<String, Object>> sponsors) throws SQLException {
         if (sponsors == null || sponsors.size() < 2) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "At least 2 confirmed sponsors are required for admission");
@@ -49,7 +48,7 @@ public class MemberService {
         validateSponsorsSeniority(sponsors);
 
         long targetCollectivitySponsors = sponsors.stream()
-                .filter(s -> targetCollectivityId.equals(UUID.fromString((String) s.get("collectivityId"))))
+                .filter(s -> targetCollectivityId.equals((String) s.get("collectivityId")))
                 .count();
 
         long otherCollectivitySponsors = sponsors.size() - targetCollectivitySponsors;
@@ -60,7 +59,7 @@ public class MemberService {
         }
     }
 
-    public Member addMemberToCollectivity(UUID collectivityId, Map<String, Object> data) throws SQLException {
+    public Member addMemberToCollectivity(String collectivityId, Map<String, Object> data) throws SQLException {
         Object regFee = data.get("registrationFeePaid");
         Object duesPaid = data.get("membershipDuesPaid");
 
@@ -97,11 +96,10 @@ public class MemberService {
         
         String candidateId = (String) data.get("id");
         if (candidateId != null) {
-            UUID candidateUUID = UUID.fromString(candidateId);
             for (Map<String, Object> sponsor : sponsors) {
-                UUID sponsorId = UUID.fromString((String) sponsor.get("id"));
+                String sponsorId = (String) sponsor.get("id");
                 String relation = (String) sponsor.get("relation");
-                repository.saveSponsorship(candidateUUID, sponsorId, relation);
+                repository.saveSponsorship(candidateId, sponsorId, relation);
             }
         }
         
@@ -112,7 +110,7 @@ public class MemberService {
                 .build();
     }
 
-    public Member getMemberById(UUID id) throws SQLException {
+    public Member getMemberById(String id) throws SQLException {
         Member member = repository.findById(id);
         if (member == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Member with ID " + id + " not found");

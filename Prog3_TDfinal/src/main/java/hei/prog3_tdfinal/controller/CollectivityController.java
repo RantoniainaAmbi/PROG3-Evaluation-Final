@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/collectivities")
@@ -33,19 +32,19 @@ public class CollectivityController {
 
     @PatchMapping("/{id}")
     public Collectivity updateIdentity(
-            @PathVariable UUID id,
+            @PathVariable String id,
             @RequestBody UpdateCollectivityIdentityRequest request) throws SQLException {
         return service.assignIdentity(id, request.getName(), request.getNumber());
     }
 
     @GetMapping("/{id}")
-    public Collectivity getById(@PathVariable UUID id) throws SQLException {
+    public Collectivity getById(@PathVariable String id) throws SQLException {
         return service.getById(id);
     }
 
     @GetMapping("/{id}/financialAccounts")
     public List<FinancialAccountResponse> getFinancialAccounts(
-            @PathVariable UUID id,
+            @PathVariable String id,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate at) throws SQLException {
         return service.getFinancialAccounts(id, at);
@@ -53,7 +52,7 @@ public class CollectivityController {
 
     @GetMapping("/{id}/statistics")
     public CollectivityStatisticsDto getStatistics(
-            @PathVariable UUID id,
+            @PathVariable String id,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) throws SQLException {
         return statisticsService.getStatistics(id, startDate, endDate);

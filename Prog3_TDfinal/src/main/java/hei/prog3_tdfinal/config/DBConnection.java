@@ -2,40 +2,47 @@ package hei.prog3_tdfinal.config;
 
 
 import io.github.cdimascio.dotenv.Dotenv;
-import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-@Getter
+@Slf4j
 @Component
 public class DBConnection {
-    private final Connection connection;
+    private final String url;
+    private final String user;
+    private final String password;
 
     public DBConnection() {
-        Dotenv dotenv = Dotenv.load();
+        Dotenv dotenv = Dotenv.configure()
+                .ignoreIfMalformed()
+                .ignoreIfMissing()
+                .load();
 
-        try {
-            String url = dotenv.get("DB_URL");
-            String user = dotenv.get("DB_USER");
-            String password = dotenv.get("DB_PASSWORD");
+        this.url = resolveEnv(dotenv, "DB_URL");
+        this.user = resolveEnv(dotenv, "DB_USER");
+        this.password = resolveEnv(dotenv, "DB_PASSWORD");
 
-            this.connection = DriverManager.getConnection(url, user, password);
-        } catch (SQLException e) {
-            System.err.println("Connection error : " + e.getMessage());
-            throw new RuntimeException(e);
-        }
+        log.info("Database configuration loaded for {}", url);
     }
 
-    public void closeConnection() {
-        try {
-            if (this.connection != null && !this.connection.isClosed()) {
-                this.connection.close();
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
+    public Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(url, user, password);
+    }
+
+    private String resolveEnv(Dotenv dotenv, String key) {
+        String value = dotenv.get(key);
+        if (value == null || value.isBlank()) {
+            value = System.getenv(key);
         }
+        if (value == null || value.isBlank()) {
+            String message = "Missing required database environment variable: " + key;
+            log.error(message);
+            throw new IllegalStateException(message);
+        }
+        return value;
     }
 }

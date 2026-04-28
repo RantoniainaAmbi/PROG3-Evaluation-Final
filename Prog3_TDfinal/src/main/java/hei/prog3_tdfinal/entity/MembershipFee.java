@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.util.UUID;
 
 @Entity
 @Data
@@ -15,7 +14,7 @@ import java.util.UUID;
 public class MembershipFee {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    private String id;
 
     private String label;
     private Double amount;
@@ -27,5 +26,5 @@ public class MembershipFee {
     @Enumerated(EnumType.STRING)
     private ActivityStatus status;
 
-    private UUID collectivityId;
+    private String collectivityId;
 }

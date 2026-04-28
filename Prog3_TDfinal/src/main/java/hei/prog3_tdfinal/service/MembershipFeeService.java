@@ -10,7 +10,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.sql.SQLException;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -18,7 +17,7 @@ public class MembershipFeeService {
 
     private final MembershipFeeRepository membershipFeeRepository;
 
-    public MembershipFee create(UUID collectivityId, MembershipFee fee) throws SQLException {
+    public MembershipFee create(String collectivityId, MembershipFee fee) throws SQLException {
         if (fee.getAmount() == null || fee.getAmount() < 0) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -47,7 +46,7 @@ public class MembershipFeeService {
         return membershipFeeRepository.save(fee);
     }
 
-    public List<MembershipFee> findByCollectivityId(UUID collectivityId) throws SQLException {
+    public List<MembershipFee> findByCollectivityId(String collectivityId) throws SQLException {
         return membershipFeeRepository.findByCollectivityId(collectivityId);
     }
 }

@@ -10,14 +10,13 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
 public class CollectivityTransactionRepository {
     private final DBConnection dbConnection;
 
-    public List<CollectivityTransaction> findByFilter(UUID collectivityId, LocalDateTime from, LocalDateTime to) throws SQLException {
+    public List<CollectivityTransaction> findByFilter(String collectivityId, LocalDateTime from, LocalDateTime to) throws SQLException {
         List<CollectivityTransaction> transactions = new ArrayList<>();
         String sql = "SELECT id, creation_date, amount, payment_mode, account_credited_id, member_debited_id, collectivity_id " +
                 "FROM collectivity_transaction " +
@@ -60,13 +59,12 @@ public class CollectivityTransactionRepository {
 
     private CollectivityTransaction mapResultSetToTransaction(ResultSet rs) throws SQLException {
         return new CollectivityTransaction(
-                (UUID) rs.getObject("id"),
+                rs.getString("id"),
                 rs.getTimestamp("creation_date").toLocalDateTime(),
                 rs.getDouble("amount"),
                 PaymentMode.valueOf(rs.getString("payment_mode")),
-                (UUID) rs.getObject("account_credited_id"),
-                (UUID) rs.getObject("member_debited_id"),
-                (UUID) rs.getObject("collectivity_id")
-        );
-    }
+                rs.getString("account_credited_id"),
+                rs.getString("member_debited_id"),
+                rs.getString("collectivity_id")
+        );}
 }

@@ -9,7 +9,6 @@ import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
@@ -17,7 +16,7 @@ public class FinancialAccountRepository {
 
     private final DBConnection dbConnection;
 
-    public void updateAmount(UUID accountId, Double amountToAdd) throws SQLException {
+    public void updateAmount(String accountId, Double amountToAdd) throws SQLException {
         String sql = "UPDATE financial_account SET amount = amount + ? WHERE id = ?";
         try (Connection conn = dbConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -28,7 +27,7 @@ public class FinancialAccountRepository {
     }
 
     
-    public List<FinancialAccountResponse> findByCollectivityId(UUID collectivityId, LocalDate at)
+    public List<FinancialAccountResponse> findByCollectivityId(String collectivityId, LocalDate at)
             throws SQLException {
 
         List<FinancialAccountResponse> results = new ArrayList<>();
@@ -43,11 +42,8 @@ public class FinancialAccountRepository {
                         WHEN mba.id IS NOT NULL THEN 'MOBILE_BANKING'
                     END                          AS account_type,
                     ba.holder_name               AS bank_holder,
-                    ba.bank_name,
-                    ba.bank_code,
-                    ba.branch_code,
-                    ba.account_number,
-                    ba.account_key,
+                    ba.bank,
+                    ba.rib_number,
                     mba.holder_name              AS mobile_holder,
                     mba.mobile_service,
                     mba.mobile_number
@@ -65,7 +61,7 @@ public class FinancialAccountRepository {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    UUID accountId = (UUID) rs.getObject("id");
+                    String accountId = rs.getString("id");
                     String accountType = rs.getString("account_type");
 
                     double balance;
@@ -83,13 +79,9 @@ public class FinancialAccountRepository {
                                     .currency("MGA");
 
                     if ("BANK".equals(accountType)) {
-                        String rib = rs.getString("bank_code")
-                                   + rs.getString("branch_code")
-                                   + rs.getString("account_number")
-                                   + rs.getString("account_key");
                         builder.holderName(rs.getString("bank_holder"))
-                               .bankName(rs.getString("bank_name"))
-                               .rib(rib);
+                               .bankName(rs.getString("bank"))
+                               .rib(rs.getString("rib_number"));
                     } else if ("MOBILE_BANKING".equals(accountType)) {
                         builder.holderName(rs.getString("mobile_holder"))
                                .mobileBankingService(rs.getString("mobile_service"))
@@ -104,7 +96,7 @@ public class FinancialAccountRepository {
     }
 
    
-    private double computeBalanceAt(Connection conn, UUID accountId, LocalDate at)
+    private double computeBalanceAt(Connection conn, String accountId, LocalDate at)
             throws SQLException {
         String sql = """
                 SELECT COALESCE(SUM(ct.amount), 0)

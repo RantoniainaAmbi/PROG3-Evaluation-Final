@@ -13,7 +13,6 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -23,22 +22,16 @@ public class CollectivityService {
     private final FinancialAccountRepository financialAccountRepository;
 
     public Collectivity createCollectivity(Map<String, Object> data) throws SQLException {
-        if (data.get("location") == null || ((String) data.get("location")).isEmpty()) {
+        String locationValue = data.get("location") != null ? (String) data.get("location") : (String) data.get("city");
+        if (locationValue == null || locationValue.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Location is required");
         }
         if (data.get("specialty") == null || ((String) data.get("specialty")).isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Specialty is required");
         }
 
-        Object federationApprovalObj = data.get("federationApproval");
-        boolean federationApproval = federationApprovalObj instanceof Boolean && (Boolean) federationApprovalObj;
-        if (!federationApproval) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Federation approval is mandatory to create a collectivity");
-        }
-
         @SuppressWarnings("unchecked")
-        List<UUID> memberIds = (List<UUID>) data.get("members");
+        List<String> memberIds = (List<String>) data.get("members");
         if (memberIds == null || memberIds.size() < 10) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "At least 10 members are required to create a collectivity");
@@ -55,22 +48,22 @@ public class CollectivityService {
                     "All specific positions (president, vice-president, treasurer, secretary) must be assigned");
         }
 
-        UUID collectivityId = UUID.randomUUID();
-        long seniorMembersCount = repository.countMembersWithMinSeniority(collectivityId, 180);
+        long seniorMembersCount = repository.countMembersWithMinSeniorityByIds(memberIds, 180);
         if (seniorMembersCount < 5) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "At least 5 members with 6+ months seniority are required to create a collectivity");
         }
 
-        UUID savedId = repository.save(data);
+        data.put("location", locationValue);
+        String savedId = repository.save(data);
 
         return Collectivity.builder()
                 .id(savedId)
-                .location((String) data.get("location"))
+                .location(locationValue)
                 .build();
     }
 
-    public Collectivity assignIdentity(UUID id, String newName, String newNumber) throws SQLException {
+    public Collectivity assignIdentity(String id, String newName, String newNumber) throws SQLException {
         Collectivity current = repository.findById(id);
         if (current == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -100,7 +93,7 @@ public class CollectivityService {
     }
 
     
-    public Collectivity getById(UUID id) throws SQLException {
+    public Collectivity getById(String id) throws SQLException {
         Collectivity collectivity = repository.findByIdFull(id);
         if (collectivity == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -110,7 +103,7 @@ public class CollectivityService {
     }
 
     
-    public List<FinancialAccountResponse> getFinancialAccounts(UUID id, LocalDate at)
+    public List<FinancialAccountResponse> getFinancialAccounts(String id, LocalDate at)
             throws SQLException {
         Collectivity collectivity = repository.findById(id);
         if (collectivity == null) {
