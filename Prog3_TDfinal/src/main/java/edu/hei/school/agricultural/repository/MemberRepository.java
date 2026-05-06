@@ -1,6 +1,10 @@
 package edu.hei.school.agricultural.repository;
 
-import edu.hei.school.agricultural.controller.dto.CollectivityLocalStats;
+import edu.hei.school.agricultural.controller.dto.CollectivityLocalStatistics;
+import edu.hei.school.agricultural.controller.dto.MemberDescription;
+import edu.hei.school.agricultural.controller.dto.MemberOccupation;
+import edu.hei.school.agricultural.controller.dto.MembershipFee;
+import edu.hei.school.agricultural.entity.ActivityStatus;
 import edu.hei.school.agricultural.entity.Collectivity;
 import edu.hei.school.agricultural.entity.Member;
 import edu.hei.school.agricultural.mapper.MemberMapper;
@@ -20,6 +24,7 @@ public class MemberRepository {
     private final MemberMapper memberMapper;
     private final CollectivityMemberRepository collectivityMemberRepository;
     private final MemberRefereeRepository memberRefereeRepository;
+
 
     public List<Member> saveAll(List<Member> members) {
         List<Member> memberList = new ArrayList<>();
@@ -154,31 +159,39 @@ public class MemberRepository {
         }
     }
 
-    public List<CollectivityLocalStats> getMembersStatistics(String collectivityId, LocalDate start, LocalDate end) {
-        List<CollectivityLocalStats> stats = new ArrayList<>();
+    public List<CollectivityLocalStatistics> getMembersStatistics(String collectivityId, LocalDate start, LocalDate end, Double totalDue) {
+        List<CollectivityLocalStatistics> stats = new ArrayList<>();
+
         try (PreparedStatement ps = connection.prepareStatement("""
-            select 
-                m.id as member_id, 
-                m.first_name, 
-                m.last_name,
-                coalesce(sum(p.amount), 0) as total_collected
-            from member m
-            left join membership_fee_payment p on m.id = p.member_id 
-                and p.creation_date between ? and ?
-            where m.collectivity_id = ?
-            group by m.id, m.first_name, m.last_name
-            """)) {
-            ps.setDate(1, Date.valueOf(String.valueOf(start)));
-            ps.setDate(2, Date.valueOf(String.valueOf(end)));
+        select 
+            m.id as member_id, 
+            m.first_name, 
+            m.last_name,
+            m.email,
+            m.occupation,
+            coalesce(sum(t.amount), 0) as total_collected
+        from member m
+        left join "transaction" t on m.id = t.member_id 
+            and t.creation_date between ? and ?
+        where m.collectivity_id = ?
+        group by m.id, m.first_name, m.last_name, m.email, m.occupation
+        """)) {
+            ps.setDate(1, Date.valueOf(start));
+            ps.setDate(2, Date.valueOf(end));
             ps.setString(3, collectivityId);
 
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                stats.add(CollectivityLocalStats.builder()
-                        .memberId(rs.getString("member_id"))
-                        .memberName(rs.getString("first_name") + " " + rs.getString("last_name"))
-                        .collectedAmount(rs.getDouble("total_collected"))
-                        .unpaidAmount(0.0)
+                stats.add(CollectivityLocalStatistics.builder()
+                        .memberDescription(MemberDescription.builder()
+                                .id(rs.getString("member_id"))
+                                .firstName(rs.getString("first_name"))
+                                .lastName(rs.getString("last_name"))
+                                .email(rs.getString("email"))
+                                .occupation(MemberOccupation.valueOf(rs.getString("occupation")))
+                                .build())
+                        .earnedAmount(rs.getDouble("total_collected"))
+                        .unpaidAmount(totalDue - rs.getDouble("total_collected"))
                         .build());
             }
             return stats;

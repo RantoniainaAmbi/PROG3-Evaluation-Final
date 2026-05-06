@@ -8,7 +8,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 @Configuration
-public class DataSource {
+public class DBConnection {
 
     @Bean
     public Connection getConnection() {
