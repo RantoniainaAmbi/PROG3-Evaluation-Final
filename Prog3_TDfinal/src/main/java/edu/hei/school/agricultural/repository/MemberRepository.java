@@ -1,6 +1,6 @@
 package edu.hei.school.agricultural.repository;
 
-import edu.hei.school.agricultural.controller.dto.MemberStat;
+import edu.hei.school.agricultural.controller.dto.CollectivityLocalStats;
 import edu.hei.school.agricultural.entity.Collectivity;
 import edu.hei.school.agricultural.entity.Member;
 import edu.hei.school.agricultural.mapper.MemberMapper;
@@ -154,8 +154,8 @@ public class MemberRepository {
         }
     }
 
-    public List<MemberStat> getMembersStatistics(String collectivityId, LocalDate start, LocalDate end) {
-        List<MemberStat> stats = new ArrayList<>();
+    public List<CollectivityLocalStats> getMembersStatistics(String collectivityId, LocalDate start, LocalDate end) {
+        List<CollectivityLocalStats> stats = new ArrayList<>();
         try (PreparedStatement ps = connection.prepareStatement("""
             select 
                 m.id as member_id, 
@@ -174,7 +174,7 @@ public class MemberRepository {
 
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                stats.add(MemberStat.builder()
+                stats.add(CollectivityLocalStats.builder()
                         .memberId(rs.getString("member_id"))
                         .memberName(rs.getString("first_name") + " " + rs.getString("last_name"))
                         .collectedAmount(rs.getDouble("total_collected"))

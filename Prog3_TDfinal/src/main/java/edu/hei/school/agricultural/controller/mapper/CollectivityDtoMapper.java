@@ -1,7 +1,6 @@
 package edu.hei.school.agricultural.controller.mapper;
 
-import edu.hei.school.agricultural.controller.dto.CreateCollectivity;
-import edu.hei.school.agricultural.controller.dto.CreateCollectivityStructure;
+import edu.hei.school.agricultural.controller.dto.*;
 import edu.hei.school.agricultural.entity.Collectivity;
 import edu.hei.school.agricultural.entity.CollectivityStructure;
 import edu.hei.school.agricultural.exception.NotFoundException;
@@ -57,6 +56,21 @@ public class CollectivityDtoMapper {
                 .members(createCollectivity.getMembers().stream()
                         .map(memberIdentifier -> memberRepository.findById(memberIdentifier).orElseThrow(() -> new NotFoundException("Member.id=" + memberIdentifier + " not found")))
                         .toList())
+                .build();
+    }
+
+
+    public CollectivityLocalStatistics mapToStatDto(Member member, Double earned, Double unpaid) {
+        return CollectivityLocalStatistics.builder()
+                .memberDescription(MemberDescription.builder()
+                        .id(member.getId())
+                        .firstName(member.getFirstName())
+                        .lastName(member.getLastName())
+                        .email(member.getEmail())
+                        .occupation(member.getOccupation())
+                        .build())
+                .earnedAmount(earned)
+                .unpaidAmount(unpaid)
                 .build();
     }
 

@@ -13,5 +13,5 @@ import java.util.List;
 @AllArgsConstructor
 public class CollectivityStat {
     private String id;
-    private List<MemberStat> memberStats;
+    private List<CollectivityLocalStatistics> collectivityLocalStats;
 }

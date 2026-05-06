@@ -1,7 +1,7 @@
 package edu.hei.school.agricultural.service;
 
 import edu.hei.school.agricultural.controller.dto.CollectivityStat;
-import edu.hei.school.agricultural.controller.dto.MemberStat;
+import edu.hei.school.agricultural.controller.dto.CollectivityLocalStats;
 import edu.hei.school.agricultural.entity.Collectivity;
 import edu.hei.school.agricultural.entity.MembershipFee;
 import edu.hei.school.agricultural.exception.BadRequestException;
@@ -77,18 +77,18 @@ public class CollectivityService {
         Collectivity collectivity = collectivityRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Collectivity.id= " + id + " not found"));
 
-        List<MemberStat> memberStats = memberRepository.getMembersStatistics(id, startDate, endDate);
+        List<CollectivityLocalStats> collectivityLocalStats = memberRepository.getMembersStatistics(id, startDate, endDate);
 
         List<MembershipFee> activeFees = membershipFeeRepository.getActiveFeesByCollectivityId(id);
 
-        for (MemberStat stat : memberStats) {
+        for (CollectivityLocalStats stat : collectivityLocalStats) {
             Double potentialUnpaid = calculatePotentialUnpaid(activeFees, startDate, endDate);
             stat.setUnpaidAmount(potentialUnpaid);
         }
 
         return CollectivityStat.builder()
                 .id(id)
-                .memberStats(memberStats)
+                .collectivityLocalStats(collectivityLocalStats)
                 .build();
     }
 
