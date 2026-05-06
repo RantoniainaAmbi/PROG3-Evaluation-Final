@@ -1,14 +1,18 @@
 package edu.hei.school.agricultural.service;
 
+import edu.hei.school.agricultural.controller.dto.CollectivityStat;
+import edu.hei.school.agricultural.controller.dto.MemberStat;
 import edu.hei.school.agricultural.entity.Collectivity;
 import edu.hei.school.agricultural.entity.MembershipFee;
 import edu.hei.school.agricultural.exception.BadRequestException;
 import edu.hei.school.agricultural.exception.NotFoundException;
 import edu.hei.school.agricultural.repository.CollectivityRepository;
+import edu.hei.school.agricultural.repository.MemberRepository;
 import edu.hei.school.agricultural.repository.MembershipFeeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static edu.hei.school.agricultural.entity.ActivityStatus.ACTIVE;
@@ -19,6 +23,7 @@ import static java.util.UUID.randomUUID;
 public class CollectivityService {
     private final CollectivityRepository collectivityRepository;
     private final MembershipFeeRepository membershipFeeRepository;
+    private final MemberRepository memberRepository;
 
     public List<Collectivity> createCollectivities(List<Collectivity> collectivities) {
         for (Collectivity collectivity : collectivities) {
@@ -66,5 +71,30 @@ public class CollectivityService {
             membershipFee.setCollectivityOwner(collectivity);
         }
         return membershipFeeRepository.saveAll(membershipFees);
+    }
+
+    public CollectivityStat getCollectivityStats(String id, LocalDate startDate, LocalDate endDate) {
+        Collectivity collectivity = collectivityRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Collectivity.id= " + id + " not found"));
+
+        List<MemberStat> memberStats = memberRepository.getMembersStatistics(id, startDate, endDate);
+
+        List<MembershipFee> activeFees = membershipFeeRepository.getActiveFeesByCollectivityId(id);
+
+        for (MemberStat stat : memberStats) {
+            Double potentialUnpaid = calculatePotentialUnpaid(activeFees, startDate, endDate);
+            stat.setUnpaidAmount(potentialUnpaid);
+        }
+
+        return CollectivityStat.builder()
+                .id(id)
+                .memberStats(memberStats)
+                .build();
+    }
+
+    private Double calculatePotentialUnpaid(List<MembershipFee> activeFees, LocalDate start, LocalDate end) {
+        return activeFees.stream()
+                .mapToDouble(MembershipFee::getAmount)
+                .sum();
     }
 }
