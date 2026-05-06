@@ -15,7 +15,7 @@ public class DataSource {
         try {
             String jdbcURl = "jdbc:postgresql://localhost:5432/agricultural_federation_api";
             String user = "postgres";
-            String password = "postgres";
+            String password = "1234";
             return DriverManager.getConnection(jdbcURl, user, password);
         } catch (SQLException e) {
             throw new RuntimeException(e);
