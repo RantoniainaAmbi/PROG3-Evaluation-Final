@@ -82,4 +82,23 @@ public class MembershipFeeRepository {
             throw new RuntimeException(e);
         }
     }
+
+    public List<MembershipFee> getActiveFeesByCollectivityId(String collectivityId) {
+        List<MembershipFee> activeFees = new ArrayList<>();
+        try (PreparedStatement ps = connection.prepareStatement("""
+            select id, label, amount, frequency, status, eligible_from
+            from membership_fee 
+            where collectivity_id = ? 
+            and status = 'ACTIVE'::activity_status
+            """)) {
+            ps.setString(1, collectivityId);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                activeFees.add(membershipFeeMapper.mapFromResultSet(rs));
+            }
+            return activeFees;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

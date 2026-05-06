@@ -1,15 +1,14 @@
 package edu.hei.school.agricultural.repository;
 
+import edu.hei.school.agricultural.controller.dto.MemberStat;
 import edu.hei.school.agricultural.entity.Collectivity;
 import edu.hei.school.agricultural.entity.Member;
 import edu.hei.school.agricultural.mapper.MemberMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -150,6 +149,39 @@ public class MemberRepository {
                 memberList.add(memberMapper.mapFromResultSet(resultSet));
             }
             return memberList;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public List<MemberStat> getMembersStatistics(String collectivityId, LocalDate start, LocalDate end) {
+        List<MemberStat> stats = new ArrayList<>();
+        try (PreparedStatement ps = connection.prepareStatement("""
+            select 
+                m.id as member_id, 
+                m.first_name, 
+                m.last_name,
+                coalesce(sum(p.amount), 0) as total_collected
+            from member m
+            left join membership_fee_payment p on m.id = p.member_id 
+                and p.creation_date between ? and ?
+            where m.collectivity_id = ?
+            group by m.id, m.first_name, m.last_name
+            """)) {
+            ps.setDate(1, Date.valueOf(String.valueOf(start)));
+            ps.setDate(2, Date.valueOf(String.valueOf(end)));
+            ps.setString(3, collectivityId);
+
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                stats.add(MemberStat.builder()
+                        .memberId(rs.getString("member_id"))
+                        .memberName(rs.getString("first_name") + " " + rs.getString("last_name"))
+                        .collectedAmount(rs.getDouble("total_collected"))
+                        .unpaidAmount(0.0)
+                        .build());
+            }
+            return stats;
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
