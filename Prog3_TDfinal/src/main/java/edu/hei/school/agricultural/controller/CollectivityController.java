@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.*;
@@ -131,5 +132,23 @@ public class CollectivityController {
         }
     }
 
-
+    @GetMapping("/collectivites/{id}/statistics")
+    public ResponseEntity<?> getCollectivityStatistics(
+            @PathVariable String id,
+            @RequestParam LocalDate from,
+            @RequestParam LocalDate to) {
+        try {
+            return ResponseEntity.status(OK)
+                    .body(collectivityService.getCollectivityStats(id, from, to));
+        } catch (BadRequestException e) {
+            return ResponseEntity.status(BAD_REQUEST)
+                    .body(e.getMessage());
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(NOT_FOUND)
+                    .body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(e.getMessage());
+        }
+    }
 }
