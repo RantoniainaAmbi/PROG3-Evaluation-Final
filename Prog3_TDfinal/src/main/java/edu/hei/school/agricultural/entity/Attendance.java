@@ -8,5 +8,5 @@ public class Attendance {
     private String id;
     private String activityId;
     private String memberId;
-    private String status;
+    private AttendanceStatus status;
 }
