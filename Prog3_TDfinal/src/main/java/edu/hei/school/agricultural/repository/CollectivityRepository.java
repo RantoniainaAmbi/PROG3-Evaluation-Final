@@ -127,4 +127,20 @@ public class CollectivityRepository {
             throw new RuntimeException(e);
         }
     }
+
+    public List<Collectivity> findAll() {
+        List<Collectivity> collectivities = new ArrayList<>();
+        try (PreparedStatement ps = connection.prepareStatement("""
+            select id, name, number, location, president_id, vice_president_id, treasurer_id, secretary_id
+            from "collectivity"
+            """)) {
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                collectivities.add(collectivityMapper.mapFromResultSet(rs));
+            }
+            return collectivities;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

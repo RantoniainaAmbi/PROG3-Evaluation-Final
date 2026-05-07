@@ -199,4 +199,74 @@ public class MemberRepository {
             throw new RuntimeException(e);
         }
     }
+
+    public CollectivityGlobalStatistics getGlobalStatsByCollectivity(
+            String collectivityId, String collectivityName,
+            LocalDate start, LocalDate end,
+            List<edu.hei.school.agricultural.entity.MembershipFee> activeFees) {
+
+        // Calcul nouveaux adhérents (membres ajoutés via collectivity_member entre start et end)
+        int newMembersCount = 0;
+        try (PreparedStatement ps = connection.prepareStatement("""
+            select count(*) as cnt
+            from collectivity_member
+            where collectivity_id = ?
+              and joined_date between ? and ?
+            """)) {
+            ps.setString(1, collectivityId);
+            ps.setDate(2, Date.valueOf(start));
+            ps.setDate(3, Date.valueOf(end));
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) newMembersCount = rs.getInt("cnt");
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        // Si pas de cotisations actives, 100% à jour par défaut
+        if (activeFees.isEmpty()) {
+            return CollectivityGlobalStatistics.builder()
+                    .collectivityId(collectivityId)
+                    .collectivityName(collectivityName)
+                    .upToDateMemberPercentage(100.0)
+                    .newMembersCount(newMembersCount)
+                    .build();
+        }
+
+        double totalDue = activeFees.stream().mapToDouble(f -> f.getAmount()).sum();
+
+        // Membres à jour = ceux dont le total payé >= totalDue
+        int upToDateCount = 0;
+        int totalMembers = 0;
+        try (PreparedStatement ps = connection.prepareStatement("""
+            select m.id,
+                   coalesce(sum(t.amount), 0) as total_paid
+            from member m
+            join collectivity_member cm on m.id = cm.member_id
+            left join "transaction" t on m.id = t.member_id
+                and t.creation_date between ? and ?
+            where cm.collectivity_id = ?
+            group by m.id
+            """)) {
+            ps.setDate(1, Date.valueOf(start));
+            ps.setDate(2, Date.valueOf(end));
+            ps.setString(3, collectivityId);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                totalMembers++;
+                double paid = rs.getDouble("total_paid");
+                if (paid >= totalDue) upToDateCount++;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        double percentage = totalMembers == 0 ? 0.0 : (upToDateCount * 100.0 / totalMembers);
+
+        return CollectivityGlobalStatistics.builder()
+                .collectivityId(collectivityId)
+                .collectivityName(collectivityName)
+                .upToDateMemberPercentage(percentage)
+                .newMembersCount(newMembersCount)
+                .build();
+    }
 }

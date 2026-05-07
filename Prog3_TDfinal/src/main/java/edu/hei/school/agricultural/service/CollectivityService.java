@@ -94,4 +94,15 @@ public class CollectivityService {
                 .mapToDouble(MembershipFee::getAmount)
                 .sum();
     }
+
+    public List<CollectivityGlobalStatistics> getAllCollectivitiesStatistics(LocalDate start, LocalDate end) {
+        List<Collectivity> collectivities = collectivityRepository.findAll();
+        List<CollectivityGlobalStatistics> result = new ArrayList<>();
+        for (Collectivity col : collectivities) {
+            List<MembershipFee> activeFees = membershipFeeRepository.getActiveFeesByCollectivityId(col.getId());
+            result.add(memberRepository.getGlobalStatsByCollectivity(
+                    col.getId(), col.getName(), start, end, activeFees));
+        }
+        return result;
+    }
 }

@@ -1,0 +1,14 @@
+package edu.hei.school.agricultural.controller.dto;
+
+import lombok.*;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class CollectivityGlobalStatistics {
+    private String collectivityId;
+    private String collectivityName;
+    private Double upToDateMemberPercentage;
+    private Integer newMembersCount;
+}
