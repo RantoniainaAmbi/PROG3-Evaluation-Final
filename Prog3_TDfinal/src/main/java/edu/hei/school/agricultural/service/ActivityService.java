@@ -21,14 +21,22 @@ public class ActivityService {
 
     public List<CollectivityActivity> addActivities(String collectivityId, List<CollectivityActivity> dtos) {
         return dtos.stream().map(dto -> {
-            if (dto.getExecutiveDate() != null && dto.getRecurrenceRule() != null) {
-                throw new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Executive date and recurrence rule are mutually exclusive"
-                );
+            if (dto.getExecutiveDate() == null && dto.getRecurrenceRule() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Either executive date or recurrence rule must be provided");
             }
 
             Activity entity = activityMapper.toEntity(dto);
+
+            if (dto.getRecurrenceRule() != null) {
+                entity.setWeekOrdinal(dto.getRecurrenceRule().getWeekOrdinal());
+                entity.setDayOfWeek(dto.getRecurrenceRule().getDayOfWeek());
+                entity.setExecutiveDate(null);
+            } else {
+                entity.setExecutiveDate(dto.getExecutiveDate());
+                entity.setWeekOrdinal(null);
+                entity.setDayOfWeek(null);
+            }
 
             try {
                 activityRepository.save(collectivityId, entity);
