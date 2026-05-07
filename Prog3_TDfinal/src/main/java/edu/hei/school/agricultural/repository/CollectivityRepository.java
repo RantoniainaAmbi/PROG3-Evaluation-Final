@@ -1,5 +1,6 @@
 package edu.hei.school.agricultural.repository;
 
+import edu.hei.school.agricultural.controller.dto.FederationStatistics;
 import edu.hei.school.agricultural.entity.Collectivity;
 import edu.hei.school.agricultural.entity.CollectivityStructure;
 import edu.hei.school.agricultural.mapper.CollectivityMapper;
@@ -10,6 +11,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDate;
 
 @Repository
 @RequiredArgsConstructor
@@ -123,6 +125,64 @@ public class CollectivityRepository {
                 collectivities.add(collectivityMapper.mapFromResultSet(resultSet));
             }
             return collectivities;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public List<FederationStatistics> getFederationStatistics(LocalDate start, LocalDate end) {
+        List<FederationStatistics> stats = new ArrayList<>();
+        try (PreparedStatement ps = connection.prepareStatement("""
+        select
+            c.id as collectivity_id,
+            c.name as collectivity_name,
+            c.number as collectivity_number,
+            count(distinct cm.member_id) as total_members,
+            count(distinct case 
+                when mf_active.id is not null 
+                     and coalesce(paid.paid_amount, 0) >= mf_active.total_due 
+                then cm.member_id 
+            end) as up_to_date_members,
+            count(distinct case 
+                when cm.registration_date between ? and ?
+                then cm.member_id 
+            end) as new_members
+        from collectivity c
+        left join collectivity_member cm on c.id = cm.collectivity_id
+        left join (
+            select collectivity_id, sum(amount) as total_due
+            from membership_fee
+            where status = 'ACTIVE'::activity_status
+            group by collectivity_id
+        ) mf_active on c.id = mf_active.collectivity_id
+        left join (
+            select t.collectivity_id, t.member_id, sum(t.amount) as paid_amount
+            from "transaction" t
+            where t.creation_date between ? and ?
+            group by t.collectivity_id, t.member_id
+        ) paid on c.id = paid.collectivity_id and cm.member_id = paid.member_id
+        group by c.id, c.name, c.number
+        """)) {
+            ps.setDate(1, java.sql.Date.valueOf(start));
+            ps.setDate(2, java.sql.Date.valueOf(end));
+            ps.setDate(3, java.sql.Date.valueOf(start));
+            ps.setDate(4, java.sql.Date.valueOf(end));
+
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                int totalMembers = rs.getInt("total_members");
+                int upToDate = rs.getInt("up_to_date_members");
+                double percentage = totalMembers == 0 ? 0.0 : (upToDate * 100.0 / totalMembers);
+
+                stats.add(FederationStatistics.builder()
+                        .collectivityId(rs.getString("collectivity_id"))
+                        .collectivityName(rs.getString("collectivity_name"))
+                        .collectivityNumber(rs.getObject("collectivity_number", Integer.class))
+                        .upToDateMembersPercentage(Math.round(percentage * 100.0) / 100.0)
+                        .newMembersCount(rs.getInt("new_members"))
+                        .build());
+            }
+            return stats;
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }

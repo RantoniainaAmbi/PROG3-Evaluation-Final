@@ -18,7 +18,7 @@ public class CollectivityMapper {
         var collectivity = Collectivity.builder()
                 .id(resultSet.getString("id"))
                 .name(resultSet.getString("name"))
-                .number(resultSet.getInt("number"))
+                .number(resultSet.getObject("number") == null ? null : resultSet.getInt("number"))
                 .location(resultSet.getString("location"))
                 .collectivityStructure(CollectivityStructure.builder()
                         .president(resultSet.getString("president_id") == null ? null : memberRepository.findById(resultSet.getString("president_id")).orElse(null))
