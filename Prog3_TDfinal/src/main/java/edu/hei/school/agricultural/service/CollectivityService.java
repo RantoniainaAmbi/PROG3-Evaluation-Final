@@ -1,5 +1,6 @@
 package edu.hei.school.agricultural.service;
 
+import edu.hei.school.agricultural.controller.dto.CollectivityGlobalStatistics;
 import edu.hei.school.agricultural.controller.dto.CollectivityStat;
 import edu.hei.school.agricultural.controller.dto.CollectivityLocalStatistics;
 import edu.hei.school.agricultural.entity.Collectivity;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 import static edu.hei.school.agricultural.entity.ActivityStatus.ACTIVE;
@@ -95,14 +97,22 @@ public class CollectivityService {
                 .sum();
     }
 
-    public List<CollectivityGlobalStatistics> getAllCollectivitiesStatistics(LocalDate start, LocalDate end) {
+    public List<CollectivityGlobalStatistics> getAllStatistics(LocalDate from, LocalDate to) {
         List<Collectivity> collectivities = collectivityRepository.findAll();
-        List<CollectivityGlobalStatistics> result = new ArrayList<>();
+        List<CollectivityGlobalStatistics> globalStats = new ArrayList<>();
+
         for (Collectivity col : collectivities) {
             List<MembershipFee> activeFees = membershipFeeRepository.getActiveFeesByCollectivityId(col.getId());
-            result.add(memberRepository.getGlobalStatsByCollectivity(
-                    col.getId(), col.getName(), start, end, activeFees));
+
+            globalStats.add(memberRepository.getGlobalStatsByCollectivity(
+                    col.getId(),
+                    col.getName(),
+                    from,
+                    to,
+                    activeFees
+            ));
         }
-        return result;
+
+        return globalStats;
     }
 }

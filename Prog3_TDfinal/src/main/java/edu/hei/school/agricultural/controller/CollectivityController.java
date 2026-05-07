@@ -1,5 +1,6 @@
 package edu.hei.school.agricultural.controller;
 
+import edu.hei.school.agricultural.controller.dto.CollectivityGlobalStatistics;
 import edu.hei.school.agricultural.controller.dto.CollectivityInformation;
 import edu.hei.school.agricultural.controller.dto.CreateCollectivity;
 import edu.hei.school.agricultural.controller.dto.CreateMembershipFee;
@@ -12,6 +13,7 @@ import edu.hei.school.agricultural.exception.BadRequestException;
 import edu.hei.school.agricultural.exception.NotFoundException;
 import edu.hei.school.agricultural.service.CollectivityService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -132,7 +134,7 @@ public class CollectivityController {
         }
     }
 
-    @GetMapping("/collectivites/{id}/statistics")
+    @GetMapping("/collectivities/{id}/statistics")
     public ResponseEntity<?> getCollectivityStatistics(
             @PathVariable String id,
             @RequestParam LocalDate from,
@@ -153,18 +155,10 @@ public class CollectivityController {
     }
 
     @GetMapping("/collectivities/statistics")
-    public ResponseEntity<?> getAllCollectivitiesStatistics(
-            @RequestParam LocalDate from,
-            @RequestParam LocalDate to) {
-        try {
-            return ResponseEntity.status(OK)
-                    .body(collectivityService.getAllCollectivitiesStatistics(from, to));
-        } catch (BadRequestException e) {
-            return ResponseEntity.status(BAD_REQUEST).body(e.getMessage());
-        } catch (NotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND).body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
-        }
+    public List<CollectivityGlobalStatistics> getAllCollectivitiesStatistics(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+
+        return collectivityService.getAllStatistics(from, to);
     }
 }

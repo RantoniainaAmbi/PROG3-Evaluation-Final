@@ -1,9 +1,6 @@
 package edu.hei.school.agricultural.repository;
 
-import edu.hei.school.agricultural.controller.dto.CollectivityLocalStatistics;
-import edu.hei.school.agricultural.controller.dto.MemberDescription;
-import edu.hei.school.agricultural.controller.dto.MemberOccupation;
-import edu.hei.school.agricultural.controller.dto.MembershipFee;
+import edu.hei.school.agricultural.controller.dto.*;
 import edu.hei.school.agricultural.entity.ActivityStatus;
 import edu.hei.school.agricultural.entity.Collectivity;
 import edu.hei.school.agricultural.entity.Member;
@@ -205,68 +202,58 @@ public class MemberRepository {
             LocalDate start, LocalDate end,
             List<edu.hei.school.agricultural.entity.MembershipFee> activeFees) {
 
-        // Calcul nouveaux adhérents (membres ajoutés via collectivity_member entre start et end)
-        int newMembersCount = 0;
-        try (PreparedStatement ps = connection.prepareStatement("""
-            select count(*) as cnt
-            from collectivity_member
-            where collectivity_id = ?
-              and joined_date between ? and ?
-            """)) {
-            ps.setString(1, collectivityId);
-            ps.setDate(2, Date.valueOf(start));
-            ps.setDate(3, Date.valueOf(end));
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) newMembersCount = rs.getInt("cnt");
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
-        // Si pas de cotisations actives, 100% à jour par défaut
-        if (activeFees.isEmpty()) {
-            return CollectivityGlobalStatistics.builder()
-                    .collectivityId(collectivityId)
-                    .collectivityName(collectivityName)
-                    .upToDateMemberPercentage(100.0)
-                    .newMembersCount(newMembersCount)
-                    .build();
-        }
-
         double totalDue = activeFees.stream().mapToDouble(f -> f.getAmount()).sum();
+        double percentage = 0.0;
+        int newMembersCount = 0;
 
-        // Membres à jour = ceux dont le total payé >= totalDue
-        int upToDateCount = 0;
-        int totalMembers = 0;
-        try (PreparedStatement ps = connection.prepareStatement("""
-            select m.id,
-                   coalesce(sum(t.amount), 0) as total_paid
-            from member m
-            join collectivity_member cm on m.id = cm.member_id
-            left join "transaction" t on m.id = t.member_id
-                and t.creation_date between ? and ?
-            where cm.collectivity_id = ?
-            group by m.id
-            """)) {
+        String sql = """
+    WITH member_stats AS (
+        SELECT m.id,
+               m.joining_date,
+               COALESCE(SUM(t.amount), 0) AS total_paid
+        FROM member m
+        LEFT JOIN "transaction" t ON m.id = t.member_id 
+            AND t.creation_date BETWEEN ? AND ?
+        WHERE m.collectivity_id = ?
+        GROUP BY m.id, m.joining_date
+    )
+    SELECT 
+        COUNT(id) AS total_members,
+        COALESCE(SUM(CASE WHEN total_paid >= ? THEN 1 ELSE 0 END), 0) AS up_to_date_count,
+        COALESCE(SUM(CASE WHEN joining_date BETWEEN ? AND ? THEN 1 ELSE 0 END), 0) AS new_members_count
+    FROM member_stats
+    """;
+
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setDate(1, Date.valueOf(start));
             ps.setDate(2, Date.valueOf(end));
             ps.setString(3, collectivityId);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                totalMembers++;
-                double paid = rs.getDouble("total_paid");
-                if (paid >= totalDue) upToDateCount++;
+            ps.setDouble(4, totalDue);
+            ps.setDate(5, Date.valueOf(start));
+            ps.setDate(6, Date.valueOf(end));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int totalMembers = rs.getInt("total_members");
+                    int upToDateCount = rs.getInt("up_to_date_count");
+                    newMembersCount = rs.getInt("new_members_count");
+
+                    if (totalMembers > 0) {
+                        percentage = (totalDue <= 0) ? 100.0 : (upToDateCount * 100.0) / totalMembers;
+                    }
+                }
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
 
-        double percentage = totalMembers == 0 ? 0.0 : (upToDateCount * 100.0 / totalMembers);
-
         return CollectivityGlobalStatistics.builder()
-                .collectivityId(collectivityId)
-                .collectivityName(collectivityName)
-                .upToDateMemberPercentage(percentage)
-                .newMembersCount(newMembersCount)
+                .collectivityInformation(CollectivityInformation.builder()
+                        .id(String.valueOf((collectivityId)))
+                        .name(collectivityName)
+                        .build())
+                .overallMemberCurrentDuePercentage(percentage)
+                .newMembersNumber(newMembersCount)
                 .build();
     }
 }
