@@ -2,16 +2,17 @@ package edu.hei.school.agricultural.controller;
 
 import edu.hei.school.agricultural.controller.dto.CollectivityGlobalStatistics;
 import edu.hei.school.agricultural.controller.dto.CollectivityInformation;
+import edu.hei.school.agricultural.controller.dto.CollectivityStat;
 import edu.hei.school.agricultural.controller.dto.CreateCollectivity;
 import edu.hei.school.agricultural.controller.dto.CreateMembershipFee;
 import edu.hei.school.agricultural.controller.mapper.CollectivityDtoMapper;
 import edu.hei.school.agricultural.controller.mapper.MembershipFeeDtoMapper;
 import edu.hei.school.agricultural.entity.Collectivity;
-import edu.hei.school.agricultural.entity.Frequency;
 import edu.hei.school.agricultural.entity.MembershipFee;
 import edu.hei.school.agricultural.exception.BadRequestException;
 import edu.hei.school.agricultural.exception.NotFoundException;
 import edu.hei.school.agricultural.service.CollectivityService;
+import edu.hei.school.agricultural.service.StatisticsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -29,22 +30,17 @@ public class CollectivityController {
     private final CollectivityDtoMapper collectivityDtoMapper;
     private final MembershipFeeDtoMapper membershipFeeDtoMapper;
     private final CollectivityService collectivityService;
+    private final StatisticsService statisticsService;
 
     @GetMapping("/collectivities/{id}")
     public ResponseEntity<?> getCollectivityById(@PathVariable String id) {
         try {
             return ResponseEntity.status(OK).body(collectivityDtoMapper.mapToDto(collectivityService.getCollectivityById(id)));
-        } catch (BadRequestException e) {
-            return ResponseEntity.status(BAD_REQUEST)
-                    .body(e.getMessage());
         } catch (NotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND)
-                    .body(e.getMessage());
+            return ResponseEntity.status(NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(e.getMessage());
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
-
     }
 
     @PostMapping("/collectivities")
@@ -53,41 +49,29 @@ public class CollectivityController {
             List<Collectivity> collectivities = createCollectivities.stream()
                     .map(collectivityDtoMapper::mapToEntity)
                     .toList();
-            return ResponseEntity.status(HttpStatus.OK)
+            return ResponseEntity.status(OK)
                     .body(collectivityService.createCollectivities(collectivities).stream()
                             .map(collectivityDtoMapper::mapToDto)
                             .toList());
-        } catch (
-                BadRequestException e) {
-            return ResponseEntity.status(BAD_REQUEST)
-                    .body(e.getMessage());
-        } catch (
-                NotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND)
-                    .body(e.getMessage());
+        } catch (BadRequestException e) {
+            return ResponseEntity.status(BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(e.getMessage());
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
     }
 
     @PutMapping("/collectivities/{id}/informations")
     public ResponseEntity<?> updateCollectivityInformation(@PathVariable String id,
                                                            @RequestBody CollectivityInformation collectivityInformation) {
-        String name = collectivityInformation.getName();
-        Integer number = collectivityInformation.getNumber();
         try {
             return ResponseEntity.status(OK)
-                    .body(collectivityDtoMapper.mapToDto(collectivityService.updateInformations(id, name, number)));
+                    .body(collectivityDtoMapper.mapToDto(collectivityService.updateInformations(id, collectivityInformation.getName(), collectivityInformation.getNumber())));
         } catch (BadRequestException e) {
-            return ResponseEntity.status(BAD_REQUEST)
-                    .body(e.getMessage());
+            return ResponseEntity.status(BAD_REQUEST).body(e.getMessage());
         } catch (NotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND)
-                    .body(e.getMessage());
+            return ResponseEntity.status(NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(e.getMessage());
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
     }
 
@@ -98,15 +82,10 @@ public class CollectivityController {
                     .body(collectivityService.getMembershipFeesByCollectivityIdentifier(id).stream()
                             .map(membershipFeeDtoMapper::mapToDto)
                             .toList());
-        } catch (BadRequestException e) {
-            return ResponseEntity.status(BAD_REQUEST)
-                    .body(e.getMessage());
         } catch (NotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND)
-                    .body(e.getMessage());
+            return ResponseEntity.status(NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(e.getMessage());
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
     }
 
@@ -123,42 +102,34 @@ public class CollectivityController {
                             .map(membershipFeeDtoMapper::mapToDto)
                             .toList());
         } catch (BadRequestException e) {
-            return ResponseEntity.status(BAD_REQUEST)
-                    .body(e.getMessage());
+            return ResponseEntity.status(BAD_REQUEST).body(e.getMessage());
         } catch (NotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND)
-                    .body(e.getMessage());
+            return ResponseEntity.status(NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(e.getMessage());
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
     }
 
-    @GetMapping("/collectivities/{id}/statistics")
+
+    @GetMapping("/collectivites/{id}/statistics")
     public ResponseEntity<?> getCollectivityStatistics(
             @PathVariable String id,
-            @RequestParam LocalDate from,
-            @RequestParam LocalDate to) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         try {
             return ResponseEntity.status(OK)
-                    .body(collectivityService.getCollectivityStats(id, from, to));
-        } catch (BadRequestException e) {
-            return ResponseEntity.status(BAD_REQUEST)
-                    .body(e.getMessage());
+                    .body(statisticsService.getCollectivityStats(id, from, to));
         } catch (NotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND)
-                    .body(e.getMessage());
+            return ResponseEntity.status(NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(e.getMessage());
+            return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
     }
 
-    @GetMapping("/collectivities/statistics")
-    public List<CollectivityGlobalStatistics> getAllCollectivitiesStatistics(
+    @GetMapping("/collectivites/statistics")
+    public ResponseEntity<List<CollectivityGlobalStatistics>> getAllCollectivitiesStatistics(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-
-        return collectivityService.getAllStatistics(from, to);
+        return ResponseEntity.ok(statisticsService.getAllStatistics(from, to));
     }
 }

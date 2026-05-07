@@ -75,44 +75,4 @@ public class CollectivityService {
         return membershipFeeRepository.saveAll(membershipFees);
     }
 
-    public CollectivityStat getCollectivityStats(String id, LocalDate startDate, LocalDate endDate) {
-        Collectivity collectivity = collectivityRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Collectivity.id= " + id + " not found"));
-
-        Double totalDue = membershipFeeRepository.getActiveFeesByCollectivityId(id).stream()
-                .mapToDouble(MembershipFee::getAmount)
-                .sum();
-
-        List<CollectivityLocalStatistics> collectivityLocalStatistics = memberRepository.getMembersStatistics(id, startDate, endDate, totalDue);
-
-        return CollectivityStat.builder()
-                .id(id)
-                .collectivityLocalStats(collectivityLocalStatistics)
-                .build();
-    }
-
-    private Double calculatePotentialUnpaid(List<MembershipFee> activeFees, LocalDate start, LocalDate end) {
-        return activeFees.stream()
-                .mapToDouble(MembershipFee::getAmount)
-                .sum();
-    }
-
-    public List<CollectivityGlobalStatistics> getAllStatistics(LocalDate from, LocalDate to) {
-        List<Collectivity> collectivities = collectivityRepository.findAll();
-        List<CollectivityGlobalStatistics> globalStats = new ArrayList<>();
-
-        for (Collectivity col : collectivities) {
-            List<MembershipFee> activeFees = membershipFeeRepository.getActiveFeesByCollectivityId(col.getId());
-
-            globalStats.add(memberRepository.getGlobalStatsByCollectivity(
-                    col.getId(),
-                    col.getName(),
-                    from,
-                    to,
-                    activeFees
-            ));
-        }
-
-        return globalStats;
-    }
 }
