@@ -2,7 +2,6 @@ package edu.hei.school.agricultural.service;
 
 import edu.hei.school.agricultural.controller.dto.CollectivityStat;
 import edu.hei.school.agricultural.controller.dto.CollectivityLocalStatistics;
-import edu.hei.school.agricultural.controller.dto.FederationStatistics;
 import edu.hei.school.agricultural.entity.Collectivity;
 import edu.hei.school.agricultural.entity.MembershipFee;
 import edu.hei.school.agricultural.exception.BadRequestException;
@@ -94,9 +93,5 @@ public class CollectivityService {
         return activeFees.stream()
                 .mapToDouble(MembershipFee::getAmount)
                 .sum();
-    }
-
-    public List<FederationStatistics> getFederationStatistics(LocalDate startDate, LocalDate endDate) {
-        return collectivityRepository.getFederationStatistics(startDate, endDate);
     }
 }

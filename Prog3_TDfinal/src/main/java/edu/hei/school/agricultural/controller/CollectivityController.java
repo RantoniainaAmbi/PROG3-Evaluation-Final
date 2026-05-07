@@ -151,20 +151,4 @@ public class CollectivityController {
                     .body(e.getMessage());
         }
     }
-
-    @GetMapping("/collectivities/statistics")
-    public ResponseEntity<?> getFederationStatistics(
-            @RequestParam LocalDate from,
-            @RequestParam LocalDate to) {
-        try {
-            return ResponseEntity.status(OK)
-                    .body(collectivityService.getFederationStatistics(from, to));
-        } catch (BadRequestException e) {
-            return ResponseEntity.status(BAD_REQUEST).body(e.getMessage());
-        } catch (NotFoundException e) {
-            return ResponseEntity.status(NOT_FOUND).body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
-        }
-    }
 }

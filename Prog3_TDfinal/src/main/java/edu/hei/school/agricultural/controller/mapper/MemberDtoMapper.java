@@ -60,18 +60,21 @@ public class MemberDtoMapper {
         if (member == null) {
             return null;
         }
-        edu.hei.school.agricultural.controller.dto.Member dto = new edu.hei.school.agricultural.controller.dto.Member();
-        dto.setId(member.getId());
-        dto.setFirstName(member.getFirstName());
-        dto.setLastName(member.getLastName());
-        dto.setBirthDate(member.getBirthDate());
-        dto.setAddress(member.getAddress());
-        dto.setProfession(member.getProfession());
-        dto.setPhoneNumber(member.getPhoneNumber());
-        dto.setEmail(member.getEmail());
-        dto.setGender(member.getGender() == null ? null : edu.hei.school.agricultural.controller.dto.Gender.valueOf(member.getGender().name()));
-        dto.setOccupation(member.getOccupation() == null ? null : MemberOccupation.valueOf(member.getOccupation().name()));
-        dto.setReferees(member.getReferees() == null ? List.of() : member.getReferees().stream().map(this::mapToDto).toList());
-        return dto;
+        return edu.hei.school.agricultural.controller.dto.Member.builder()
+                .id(member.getId())
+                .firstName(member.getFirstName())
+                .lastName(member.getLastName())
+                .birthDate(member.getBirthDate())
+                .address(member.getAddress())
+                .profession(member.getProfession())
+                .phoneNumber(member.getPhoneNumber())
+                .profession(member.getProfession())
+                .email(member.getEmail())
+                .gender(member.getGender() == null ? null : edu.hei.school.agricultural.controller.dto.Gender.valueOf(member.getGender().name()))
+                .occupation(member.getOccupation() == null ? null : MemberOccupation.valueOf(member.getOccupation().name()))
+                .referees(member.getReferees() == null ? List.of() : member.getReferees().stream()
+                        .map(this::mapToDto)
+                        .toList())
+                .build();
     }
 }

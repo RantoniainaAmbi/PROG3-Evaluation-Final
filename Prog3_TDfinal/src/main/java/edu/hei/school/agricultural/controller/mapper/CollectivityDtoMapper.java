@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class    CollectivityDtoMapper {
+public class CollectivityDtoMapper {
     private final MemberRepository memberRepository;
     private final MemberDtoMapper memberDtoMapper;
 
@@ -67,8 +67,7 @@ public class    CollectivityDtoMapper {
                         .firstName(member.getFirstName())
                         .lastName(member.getLastName())
                         .email(member.getEmail())
-                            .occupation(member.getOccupation() == null ? null
-                                : MemberOccupation.valueOf(member.getOccupation().name()))
+                        .occupation(member.getOccupation())
                         .build())
                 .earnedAmount(earned)
                 .unpaidAmount(unpaid)
