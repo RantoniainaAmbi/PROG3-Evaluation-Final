@@ -38,6 +38,8 @@ public class AttendanceRepository {
                 ps.addBatch();
             }
             ps.executeBatch();
+        }catch (SQLException e){
+            throw new SQLException(e);
         }
     }
 

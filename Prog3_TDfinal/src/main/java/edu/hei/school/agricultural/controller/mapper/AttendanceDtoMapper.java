@@ -10,7 +10,7 @@ public class AttendanceDtoMapper {
 
     public Attendance toEntity(CreateActivityMemberAttendanceDTO dto) {
         return Attendance.builder()
-                .id("ATT-" + System.currentTimeMillis())
+                .id(dto.getMemberIdentifier())
                 .memberId(dto.getMemberIdentifier())
                 .status(AttendanceStatus.valueOf(dto.getAttendanceStatus().name()))
                 .build();
