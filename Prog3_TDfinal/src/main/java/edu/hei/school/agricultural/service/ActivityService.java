@@ -1,6 +1,7 @@
 package edu.hei.school.agricultural.service;
 
 import edu.hei.school.agricultural.controller.dto.CollectivityActivity;
+import edu.hei.school.agricultural.controller.mapper.ActivityDtoMapper;
 import edu.hei.school.agricultural.entity.Activity;
 import edu.hei.school.agricultural.repository.ActivityRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ActivityService {
     private final ActivityRepository activityRepository;
+    private final ActivityDtoMapper activityMapper;
 
     public List<CollectivityActivity> addActivities(String collectivityId, List<CollectivityActivity> dtos) {
         return dtos.stream().map(dto -> {
@@ -23,24 +25,28 @@ public class ActivityService {
                 throw new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
                         "Executive date and recurrence rule are mutually exclusive"
-                );            }
+                );
+            }
 
-            Activity entity = Activity.builder()
-                    .id(dto.getId())
-                    .label(dto.getLabel())
-                    .type(dto.getActivityType())
-                    .occupationsConcerned(dto.getMemberOccupationConcerned())
-                    .executiveDate(dto.getExecutiveDate())
-                    .weekOrdinal(dto.getRecurrenceRule() != null ? dto.getRecurrenceRule().getWeekOrdinal() : null)
-                    .dayOfWeek(dto.getRecurrenceRule() != null ? dto.getRecurrenceRule().getDayOfWeek() : null)
-                    .build();
+            Activity entity = activityMapper.toEntity(dto);
 
             try {
                 activityRepository.save(collectivityId, entity);
                 return dto;
             } catch (SQLException e) {
-                throw new RuntimeException(e);
+                throw new RuntimeException("Error saving activity", e);
             }
         }).collect(Collectors.toList());
+    }
+
+    public List<CollectivityActivity> getActivitiesByCollectivity(String id) {
+        try {
+            List<Activity> entities = activityRepository.findAllByCollectivity(id);
+            return entities.stream()
+                    .map(activityMapper::toDto)
+                    .collect(Collectors.toList());
+        } catch (SQLException e) {
+            throw new RuntimeException("Error while fetching activities for collectivity: " + id, e);
+        }
     }
 }
