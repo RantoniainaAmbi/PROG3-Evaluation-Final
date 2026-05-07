@@ -159,23 +159,28 @@ public class MemberRepository {
     public List<CollectivityLocalStatistics> getMembersStatistics(String collectivityId, LocalDate start, LocalDate end, Double totalDue) {
         List<CollectivityLocalStatistics> stats = new ArrayList<>();
 
-        try (PreparedStatement ps = connection.prepareStatement("""
-        select 
-            m.id as member_id, 
-            m.first_name, 
-            m.last_name,
-            m.email,
-            m.occupation,
-            coalesce(sum(t.amount), 0) as total_collected
-        from member m
-        left join "transaction" t on m.id = t.member_id 
-            and t.creation_date between ? and ?
-        where m.collectivity_id = ?
-        group by m.id, m.first_name, m.last_name, m.email, m.occupation
-        """)) {
+        String sql = """
+    SELECT 
+        m.id as member_id, m.first_name, m.last_name, m.email, m.occupation,
+        COALESCE(SUM(DISTINCT t.amount), 0) as total_collected,
+        (COUNT(CASE WHEN att.status = 'ATTENDED' THEN 1 END) * 100.0 / 
+         NULLIF(COUNT(DISTINCT a.id), 0)) as assiduity_rate
+    FROM member m
+    LEFT JOIN "transaction" t ON m.id = t.member_id 
+        AND t.creation_date BETWEEN ? AND ?
+    LEFT JOIN activity a ON a.collectivity_id = m.collectivity_id
+        AND (a.executive_date BETWEEN ? AND ? OR a.executive_date IS NULL)
+    LEFT JOIN attendance att ON att.member_id = m.id AND att.activity_id = a.id
+    WHERE m.collectivity_id = ?
+    GROUP BY m.id, m.first_name, m.last_name, m.email, m.occupation
+    """;
+
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setDate(1, Date.valueOf(start));
             ps.setDate(2, Date.valueOf(end));
-            ps.setString(3, collectivityId);
+            ps.setDate(3, Date.valueOf(start));
+            ps.setDate(4, Date.valueOf(end));
+            ps.setString(5, collectivityId);
 
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
@@ -189,6 +194,7 @@ public class MemberRepository {
                                 .build())
                         .earnedAmount(rs.getDouble("total_collected"))
                         .unpaidAmount(totalDue - rs.getDouble("total_collected"))
+                        .assiduityPercentage(rs.getDouble("assiduity_rate")) // Nouveau champ v0.0.7
                         .build());
             }
             return stats;
@@ -203,43 +209,51 @@ public class MemberRepository {
             List<edu.hei.school.agricultural.entity.MembershipFee> activeFees) {
 
         double totalDue = activeFees.stream().mapToDouble(f -> f.getAmount()).sum();
-        double percentage = 0.0;
+        double feePercentage = 0.0;
+        double globalAssiduity = 0.0;
         int newMembersCount = 0;
 
         String sql = """
-    WITH member_stats AS (
-        SELECT m.id,
-               m.joining_date,
-               COALESCE(SUM(t.amount), 0) AS total_paid
-        FROM member m
-        LEFT JOIN "transaction" t ON m.id = t.member_id 
-            AND t.creation_date BETWEEN ? AND ?
-        WHERE m.collectivity_id = ?
-        GROUP BY m.id, m.joining_date
-    )
-    SELECT 
-        COUNT(id) AS total_members,
-        COALESCE(SUM(CASE WHEN total_paid >= ? THEN 1 ELSE 0 END), 0) AS up_to_date_count,
-        COALESCE(SUM(CASE WHEN joining_date BETWEEN ? AND ? THEN 1 ELSE 0 END), 0) AS new_members_count
-    FROM member_stats
-    """;
+WITH member_stats AS (
+    SELECT m.id, m.joining_date,
+           COALESCE(SUM(DISTINCT t.amount), 0) AS total_paid,
+           (COUNT(CASE WHEN att.status = 'ATTENDED' THEN 1 END) * 100.0 / 
+            NULLIF(COUNT(DISTINCT a.id), 0)) as member_assiduity
+    FROM member m
+    LEFT JOIN "transaction" t ON m.id = t.member_id 
+        AND t.creation_date BETWEEN ? AND ?
+    LEFT JOIN activity a ON a.collectivity_id = m.collectivity_id
+        AND (a.executive_date BETWEEN ? AND ? OR a.executive_date IS NULL)
+    LEFT JOIN attendance att ON att.member_id = m.id AND att.activity_id = a.id
+    WHERE m.collectivity_id = ?
+    GROUP BY m.id, m.joining_date
+)
+SELECT 
+    COUNT(id) AS total_members,
+    COALESCE(SUM(CASE WHEN total_paid >= ? THEN 1 ELSE 0 END), 0) AS up_to_date_count,
+    COALESCE(SUM(CASE WHEN joining_date BETWEEN ? AND ? THEN 1 ELSE 0 END), 0) AS new_members_count,
+    COALESCE(AVG(member_assiduity), 0) as avg_assiduity 
+FROM member_stats
+""";
 
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setDate(1, Date.valueOf(start));
             ps.setDate(2, Date.valueOf(end));
-            ps.setString(3, collectivityId);
-            ps.setDouble(4, totalDue);
-            ps.setDate(5, Date.valueOf(start));
-            ps.setDate(6, Date.valueOf(end));
+            ps.setDate(3, Date.valueOf(start));
+            ps.setDate(4, Date.valueOf(end));
+            ps.setString(5, collectivityId);
+            ps.setDouble(6, totalDue);
+            ps.setDate(7, Date.valueOf(start));
+            ps.setDate(8, Date.valueOf(end));
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     int totalMembers = rs.getInt("total_members");
-                    int upToDateCount = rs.getInt("up_to_date_count");
                     newMembersCount = rs.getInt("new_members_count");
+                    globalAssiduity = rs.getDouble("avg_assiduity");
 
                     if (totalMembers > 0) {
-                        percentage = (totalDue <= 0) ? 100.0 : (upToDateCount * 100.0) / totalMembers;
+                        feePercentage = (totalDue <= 0) ? 100.0 : (rs.getInt("up_to_date_count") * 100.0) / totalMembers;
                     }
                 }
             }
@@ -249,10 +263,11 @@ public class MemberRepository {
 
         return CollectivityGlobalStatistics.builder()
                 .collectivityInformation(CollectivityInformation.builder()
-                        .id(String.valueOf((collectivityId)))
+                        .id(collectivityId)
                         .name(collectivityName)
                         .build())
-                .overallMemberCurrentDuePercentage(percentage)
+                .overallMemberCurrentDuePercentage(feePercentage)
+                .overallMemberAssiduityPercentage(globalAssiduity)
                 .newMembersNumber(newMembersCount)
                 .build();
     }
