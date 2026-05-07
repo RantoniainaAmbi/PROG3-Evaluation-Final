@@ -10,4 +10,5 @@ public class CollectivityGlobalStatistics {
     private Integer newMembersNumber;
 
     private Double overallMemberCurrentDuePercentage;
+    private Double overallMemberAssiduityPercentage;
 }

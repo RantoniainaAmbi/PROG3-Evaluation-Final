@@ -60,7 +60,12 @@ public class CollectivityDtoMapper {
     }
 
 
-    public CollectivityLocalStatistics mapToStatDto(Member member, Double earned, Double unpaid) {
+    public CollectivityLocalStatistics mapToStatDto(
+            Member member,
+            Double earned,
+            Double unpaid,
+            Double assiduityPercentage
+    ) {
         return CollectivityLocalStatistics.builder()
                 .memberDescription(MemberDescription.builder()
                         .id(member.getId())
@@ -71,7 +76,25 @@ public class CollectivityDtoMapper {
                         .build())
                 .earnedAmount(earned)
                 .unpaidAmount(unpaid)
+                .assiduityPercentage(assiduityPercentage)
                 .build();
     }
 
+    public CollectivityGlobalStatistics mapToOverallStatDto(
+            CollectivityInformation info,
+            Integer newMembers,
+            Double duePercentage,
+            Double globalAssiduity
+    ) {
+        return CollectivityGlobalStatistics.builder()
+                .collectivityInformation(CollectivityInformation.builder()
+                        .id(info.getId())
+                        .name(info.getName())
+                        .number(info.getNumber())
+                        .build())
+                .newMembersNumber(newMembers)
+                .overallMemberCurrentDuePercentage(duePercentage)
+                .overallMemberAssiduityPercentage(globalAssiduity)
+                .build();
+    }
 }
